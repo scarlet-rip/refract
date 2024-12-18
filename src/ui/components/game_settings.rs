@@ -149,3 +149,4 @@ impl GameSettings {
 // by that I mean finding the width of label & separator without creating new labels
 // lastly, I hardcoded the amount of options/fields here let input_field_width = max_width / 3.0;
 // get rid of that
+// add a label above the group that says "Game settings" or sum like dat
