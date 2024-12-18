@@ -8,11 +8,8 @@ on: [push]
 
 jobs:
   clippy-check:
-    runs-on: ubuntu-latest
+    runs-on: rust-latest
     steps:
-      - name: Install Rustup
-        run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh && source $HOME/.cargo/env
-
       - name: install Clippy
         run: rustup component add clippy
 
