@@ -2,8 +2,22 @@
 variables:
   RUSTFLAGS: "-Dwarnings"
 
-clippy_check:
-  image: rust:latest
-  script:
-    - rustup component add clippy
-    - cargo clippy --all-targets --all-features
+name: Clippy
+run-name: Clippy is running
+on: [push]
+
+jobs:
+  clippy-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install Rustup
+        run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh && source $HOME/.cargo/env
+
+      - name: install Clippy
+        run: rustup component add clippy
+
+      - name: run clippy
+        run: cargo clippy --all-targets --all-features
