@@ -8,7 +8,7 @@ on: [push]
 
 jobs:
   clippy-check:
-    runs-on: rust-latest
+    image: rust:latest
     steps:
       - name: install Clippy
         run: rustup component add clippy
