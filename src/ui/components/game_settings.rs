@@ -61,7 +61,7 @@ impl GameSettings {
                             AMOUNT_OF_FIELDS,
                             false,
                             &mut self.sens_buffer,
-                            &mut self.yaw,
+                            &mut self.sens,
                         )
                         .show(ui),
                     );
@@ -98,9 +98,16 @@ impl GameSettings {
                         }
                     }
 
-                    if self.is_sens_input_valid && self.is_yaw_input_valid {
+                    if self.is_sens_input_valid
+                        && self.is_yaw_input_valid
+                        && self.sens > 0.0
+                        && self.yaw > 0.0
+                    {
                         self.increment = self.sens * self.yaw;
                         self.increment_buffer = self.increment.to_string();
+                    } else {
+                        self.increment = 0.0;
+                        self.increment_buffer = String::from("");
                     }
                 });
             });
