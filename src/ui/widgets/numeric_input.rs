@@ -1,7 +1,10 @@
 use eframe::egui::{Response, TextBuffer, TextEdit, Ui, Widget};
-use std::{fmt::Display, str::FromStr};
+use std::{
+    fmt::{Debug, Display},
+    str::FromStr,
+};
 
-pub(crate) trait Num: FromStr + Display + Copy {}
+pub(crate) trait Num: FromStr + Display + Copy + Default + Debug {}
 
 impl Num for i8 {}
 impl Num for i16 {}
