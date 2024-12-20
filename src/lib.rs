@@ -1,2 +1,2 @@
-pub mod test;
-pub(crate) mod ui;
+pub(crate) mod gui;
+pub use gui::run_gui;

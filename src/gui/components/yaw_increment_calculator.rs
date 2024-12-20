@@ -1,5 +1,5 @@
-use crate::ui::widgets::NumericSettingInput;
-use eframe::egui::{Align, Layout, Response, Separator, Ui};
+use super::super::widgets::NumericSettingInput;
+use egui::{Align, Layout, Response, Separator, Ui};
 
 pub(crate) struct YawIncrementCalculator {
     pub sens: f32,

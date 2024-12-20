@@ -1,6 +1,7 @@
-use crate::ui::widgets::{Num, NumericInput};
-use eframe::egui::{Align, Color32, Context, Layout, Response, TextStyle, Ui, Widget};
+use super::{Num, NumericInput, WidgetState};
+use egui::{Align, Color32, Context, Layout, Response, TextStyle, Ui, Widget};
 
+impl WidgetState for NumericSettingInputState {}
 #[derive(Default, Clone)]
 struct NumericSettingInputState {
     width: f32,
@@ -19,11 +20,7 @@ pub(crate) struct NumericSettingInput<'b, N: Num> {
 
 impl<N: Num> Widget for NumericSettingInput<'_, N> {
     fn ui(self, ui: &mut Ui) -> Response {
-        let id = ui.make_persistent_id(&self.name);
-
-        let mut state: NumericSettingInputState = ui
-            .ctx()
-            .memory_mut(|memory| memory.data.get_persisted(id).unwrap_or_default());
+        let mut state = NumericSettingInputState::load_or_default(ui, &self.name);
 
         if state.cached_input_setting_box_width != self.input_setting_box_width {
             self.calculate_input_field_width(ui, &mut state);
@@ -34,10 +31,11 @@ impl<N: Num> Widget for NumericSettingInput<'_, N> {
                 ui.label(&self.name);
 
                 ui.horizontal(|ui| {
-                    let input = NumericInput::new(&self.name, self.value)
-                        .desired_width(state.width)
-                        .interactive(self.is_interactive)
-                        .show(ui);
+                    let input = ui.add(
+                        NumericInput::new(&self.name, self.value)
+                            .desired_width(state.width)
+                            .interactive(self.is_interactive),
+                    );
 
                     if let Some(separator) = &self.separator {
                         ui.label(separator);
@@ -49,8 +47,7 @@ impl<N: Num> Widget for NumericSettingInput<'_, N> {
             .inner
             .inner;
 
-        ui.ctx()
-            .memory_mut(|memory| memory.data.insert_persisted(id, state));
+        state.save_state(ui, &self.name);
 
         response
     }

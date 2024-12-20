@@ -1,8 +1,10 @@
+pub(crate) mod components;
+pub(crate) mod widgets;
+
+use components::MainPanel;
 use eframe::{egui::ViewportBuilder, NativeOptions};
 
-use crate::ui::components::MainPanel;
-
-pub fn test() -> eframe::Result {
+pub fn run_gui() -> eframe::Result {
     let options = NativeOptions {
         viewport: ViewportBuilder::default()
             .with_resizable(false)
@@ -13,6 +15,7 @@ pub fn test() -> eframe::Result {
             .with_min_inner_size([450.0, 350.0]),
         ..Default::default()
     };
+
     eframe::run_native(
         "sens-matcher-linux",
         options,

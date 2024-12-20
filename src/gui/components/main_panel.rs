@@ -1,5 +1,6 @@
 use super::YawIncrementCalculator;
-use eframe::egui::{CentralPanel, Context};
+use eframe::Frame;
+use egui::{CentralPanel, Context};
 
 #[derive(Default)]
 pub(crate) struct MainPanel {
@@ -7,7 +8,7 @@ pub(crate) struct MainPanel {
 }
 
 impl eframe::App for MainPanel {
-    fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
         CentralPanel::default().show(ctx, |ui| {
             self.yaw_increment_calculator.show(ui);
         });

@@ -1,10 +1,8 @@
-use eframe::egui::{Response, TextEdit, Ui, Widget};
-use std::{
-    fmt::{Debug, Display},
-    str::FromStr,
-};
+use super::WidgetState;
+use egui::{Response, TextEdit, Ui, Widget};
+use std::{fmt::Display, str::FromStr};
 
-pub(crate) trait Num: FromStr + Display + Copy + Default + Debug {}
+pub(crate) trait Num: FromStr + Display + Default {}
 
 impl Num for i8 {}
 impl Num for i16 {}
@@ -21,18 +19,10 @@ impl Num for usize {}
 impl Num for f32 {}
 impl Num for f64 {}
 
-use super::{WidgetTempState, WidgetWithTempState};
-
-impl WidgetTempState for NumericInputState {}
-
-impl<N: Num> WidgetWithTempState for NumericInput<'_, N> {
-    fn id_salt(&self) -> &str {
-        self.id_salt
-    }
-}
+impl WidgetState for NumericInputState {}
 
 #[derive(Default, Clone)]
-struct NumericInputState {
+pub(crate) struct NumericInputState {
     text_buffer: String,
     is_text_buffer_valid: bool,
 }
@@ -44,9 +34,9 @@ pub(crate) struct NumericInput<'b, N: Num> {
     is_interactive: bool,
 }
 
-impl<N: Num> NumericInput<'_, N> {
-    pub fn show(self, ui: &mut Ui) -> Response {
-        let mut state: NumericInputState = self.load_state_or_default(ui);
+impl<N: Num> Widget for NumericInput<'_, N> {
+    fn ui(self, ui: &mut Ui) -> Response {
+        let mut state = NumericInputState::load_or_default(ui, self.id_salt);
 
         if state.text_buffer.is_empty() || !self.is_interactive {
             state.text_buffer = self.value_buffer.to_string();
@@ -78,15 +68,9 @@ impl<N: Num> NumericInput<'_, N> {
             }
         }
 
-        self.update_state(ui, state);
+        state.save_state(ui, self.id_salt);
 
         text_edit
-    }
-}
-
-impl<N: Num> Widget for NumericInput<'_, N> {
-    fn ui(self, ui: &mut Ui) -> Response {
-        self.show(ui)
     }
 }
 

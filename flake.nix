@@ -10,17 +10,11 @@
       systems = [ "x86_64-linux" ];
       perSystem = { config, self', pkgs, lib, system, ... }:
         let
-          runtimeDeps = with pkgs; [ 
-			# enigo
-		  	xdotool
+		  enigoDeps = with pkgs; [ xdotool ];
+		  eframeDeps = with pkgs; [ libxkbcommon libGL wayland ];
+          runtimeDeps = enigoDeps ++ eframeDeps;
 
-			# eframe: glow & wayland
-			libxkbcommon
-			libGL
-            wayland
-		];
-
-          buildDeps = with pkgs; [ libxkbcommon];
+          buildDeps = with pkgs; [ pkg-config ];
 
           cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
           msrv = cargoToml.package.rust-version;
@@ -51,7 +45,7 @@
             overlays = [ (import inputs.rust-overlay) ];
           };
 
-          devShells.default = mkDevShell pkgs.rust-bin.nightly.latest.default;
+          devShells.default = mkDevShell pkgs.rust-bin.stable.latest.default;
         };
     };
 }
