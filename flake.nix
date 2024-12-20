@@ -51,7 +51,7 @@
             overlays = [ (import inputs.rust-overlay) ];
           };
 
-          devShells.default = mkDevShell pkgs.rust-bin.stable.latest.default;
+          devShells.default = mkDevShell pkgs.rust-bin.nightly.latest.default;
         };
     };
 }

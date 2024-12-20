@@ -1,51 +1,74 @@
 use crate::ui::widgets::{Num, NumericInput};
 use eframe::egui::{Align, Color32, Context, Layout, Response, TextStyle, Ui, Widget};
 
-// TODO:
-// use states, some fields should be set every render
-// the displayed decimal precision might not be accurate, take a look at that
-// refactor
+#[derive(Default, Clone)]
+struct NumericSettingInputState {
+    width: f32,
+    cached_input_setting_box_width: f32,
+}
 
-#[derive(Debug)]
-pub(crate) struct NumericSettingInput<'a, N: Num> {
+pub(crate) struct NumericSettingInput<'b, N: Num> {
     input_setting_box_width: f32,
     input_setting_box_amount_of_fields: u16,
-    width: f32,
-    value: &'a mut N,
-    text_buffer: &'a mut String,
+    value: &'b mut N,
     separator: Option<String>,
     name: String,
     is_last: bool,
     is_interactive: bool,
 }
 
-pub(crate) struct NumericSettingInputOutput {
-    pub response: Response,
-    pub is_text_buffer_value_valid: bool,
-}
-
 impl<N: Num> Widget for NumericSettingInput<'_, N> {
     fn ui(self, ui: &mut Ui) -> Response {
-        self.show(ui).response
+        let id = ui.make_persistent_id(&self.name);
+
+        let mut state: NumericSettingInputState = ui
+            .ctx()
+            .memory_mut(|memory| memory.data.get_persisted(id).unwrap_or_default());
+
+        if state.cached_input_setting_box_width != self.input_setting_box_width {
+            self.calculate_input_field_width(ui, &mut state);
+        }
+
+        let response = ui
+            .with_layout(Layout::top_down(Align::Min), |ui| {
+                ui.label(&self.name);
+
+                ui.horizontal(|ui| {
+                    let input = NumericInput::new(&self.name, self.value)
+                        .desired_width(state.width)
+                        .interactive(self.is_interactive)
+                        .show(ui);
+
+                    if let Some(separator) = &self.separator {
+                        ui.label(separator);
+                    }
+
+                    input
+                })
+            })
+            .inner
+            .inner;
+
+        ui.ctx()
+            .memory_mut(|memory| memory.data.insert_persisted(id, state));
+
+        response
     }
 }
 
-impl<'t, N: Num> NumericSettingInput<'t, N> {
+impl<'b, N: Num> NumericSettingInput<'b, N> {
     pub fn new(
         name: String,
         separator: Option<String>,
         input_setting_box_width: f32,
         input_setting_box_amount_of_fields: u16,
         is_last: bool,
-        text_buffer: &'t mut String,
-        value: &'t mut N,
+        value: &'b mut N,
     ) -> Self {
         Self {
             input_setting_box_width,
             input_setting_box_amount_of_fields,
-            width: f32::default(),
             value,
-            text_buffer,
             separator,
             name,
             is_last,
@@ -53,45 +76,12 @@ impl<'t, N: Num> NumericSettingInput<'t, N> {
         }
     }
 
-    pub fn show(mut self, ui: &mut Ui) -> NumericSettingInputOutput {
-        self.calculate_input_field_width(ui);
-
-        let mut is_text_buffer_value_valid = false;
-
-        let response = ui
-            .with_layout(Layout::top_down(Align::Min), |ui| {
-                ui.label(self.name);
-
-                ui.horizontal(|ui| {
-                    let input = NumericInput::new(self.value, self.text_buffer)
-                        .desired_width(self.width)
-                        .interactive(self.is_interactive)
-                        .show(ui);
-
-                    if let Some(separator) = self.separator {
-                        ui.label(separator);
-                    }
-
-                    is_text_buffer_value_valid = input.is_buffer_valid;
-
-                    input
-                })
-            })
-            .response;
-
-        NumericSettingInputOutput {
-            response,
-            is_text_buffer_value_valid,
-        }
-    }
-
     pub fn interactive(mut self, is_interactive: bool) -> Self {
         self.is_interactive = is_interactive;
-
         self
     }
 
-    fn calculate_input_field_width(&mut self, ui: &mut Ui) {
+    fn calculate_input_field_width(&self, ui: &mut Ui, state: &mut NumericSettingInputState) {
         let base_input_field_width =
             self.input_setting_box_width / self.input_setting_box_amount_of_fields as f32;
 
@@ -104,9 +94,9 @@ impl<'t, N: Num> NumericSettingInput<'t, N> {
 
             let label_width = calculate_text_width(ui.ctx(), &self.name, TextStyle::Body);
 
-            self.width = base_input_field_width - separator_width - label_width;
+            state.width = base_input_field_width - separator_width - label_width;
         } else {
-            self.width = base_input_field_width;
+            state.width = base_input_field_width;
         }
     }
 }

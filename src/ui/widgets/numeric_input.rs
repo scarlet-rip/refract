@@ -1,4 +1,4 @@
-use eframe::egui::{Response, TextBuffer, TextEdit, Ui, Widget};
+use eframe::egui::{Response, TextEdit, Ui, Widget};
 use std::{
     fmt::{Debug, Display},
     str::FromStr,
@@ -21,57 +21,79 @@ impl Num for usize {}
 impl Num for f32 {}
 impl Num for f64 {}
 
-pub(crate) struct NumericInput<'t, T: Num> {
+use super::{WidgetTempState, WidgetWithTempState};
+
+impl WidgetTempState for NumericInputState {}
+
+impl<N: Num> WidgetWithTempState for NumericInput<'_, N> {
+    fn id_salt(&self) -> &str {
+        self.id_salt
+    }
+}
+
+#[derive(Default, Clone)]
+struct NumericInputState {
+    text_buffer: String,
+    is_text_buffer_valid: bool,
+}
+
+pub(crate) struct NumericInput<'b, N: Num> {
+    id_salt: &'b str,
     desired_width: f32,
-    text_buffer: &'t mut dyn TextBuffer,
-    value_buffer: &'t mut T,
+    value_buffer: &'b mut N,
     is_interactive: bool,
 }
 
-pub(crate) struct NumericInputOutput {
-    pub response: Response,
-    pub is_buffer_valid: bool,
-}
+impl<N: Num> NumericInput<'_, N> {
+    pub fn show(self, ui: &mut Ui) -> Response {
+        let mut state: NumericInputState = self.load_state_or_default(ui);
 
-impl<T: Num> NumericInput<'_, T> {
-    pub fn show(self, ui: &mut Ui) -> NumericInputOutput {
-        let is_buffer_valid = self.text_buffer.as_str().parse::<T>().is_ok();
-        let text_color = if is_buffer_valid {
+        if state.text_buffer.is_empty() || !self.is_interactive {
+            state.text_buffer = self.value_buffer.to_string();
+            state.is_text_buffer_valid = true;
+        }
+
+        let text_color = if state.is_text_buffer_valid {
             ui.style().visuals.noninteractive().text_color()
         } else {
             ui.style().visuals.error_fg_color
         };
 
         let text_edit = ui.add(
-            TextEdit::singleline(self.text_buffer)
+            TextEdit::singleline(&mut state.text_buffer)
                 .desired_width(self.desired_width)
                 .text_color(text_color)
                 .interactive(self.is_interactive),
         );
 
         if text_edit.changed() {
-            if let Ok(value) = self.text_buffer.as_str().parse::<T>() {
-                *self.value_buffer = value;
+            let parsed_possible_text = state.text_buffer.as_str().parse::<N>();
+
+            state.is_text_buffer_valid = parsed_possible_text.is_ok();
+
+            if let Ok(parsed_text) = parsed_possible_text {
+                *self.value_buffer = parsed_text;
+            } else {
+                *self.value_buffer = N::default();
             }
         }
 
-        NumericInputOutput {
-            response: text_edit,
-            is_buffer_valid,
-        }
+        self.update_state(ui, state);
+
+        text_edit
     }
 }
 
-impl<T: Num> Widget for NumericInput<'_, T> {
+impl<N: Num> Widget for NumericInput<'_, N> {
     fn ui(self, ui: &mut Ui) -> Response {
-        self.show(ui).response
+        self.show(ui)
     }
 }
 
-impl<'t, T: Num> NumericInput<'t, T> {
-    pub fn new(value_buffer: &'t mut T, text_buffer: &'t mut String) -> Self {
+impl<'b, N: Num> NumericInput<'b, N> {
+    pub fn new(id_salt: &'b str, value_buffer: &'b mut N) -> Self {
         Self {
-            text_buffer,
+            id_salt,
             value_buffer,
             desired_width: f32::default(),
             is_interactive: true,
