@@ -3,13 +3,17 @@ use crossterm::{
     event::KeyEvent,
     terminal::{disable_raw_mode, enable_raw_mode},
 };
+use crossterm::{queue, style::Print};
 use hyprland::{
     data::CursorPosition,
     shared::{HyprData, HyprError},
 };
-use std::sync::{Arc, Mutex};
-use std::thread;
-use std::time::Duration;
+use std::{
+    io::{stdout, Write},
+    sync::{Arc, Mutex},
+    thread,
+    time::Duration,
+};
 
 pub(crate) fn get_mouse_location() -> Result<(i64, i64), HyprError> {
     let position = CursorPosition::get()?;
@@ -79,7 +83,6 @@ fn stop_tracking(tracker: &mut MouseTracker) -> i64 {
     tracker.get_total_distance()
 }
 
-
 fn while_tracking(tracker: Arc<Mutex<MouseTracker>>) {
     loop {
         let position = get_mouse_location().unwrap();
@@ -87,7 +90,7 @@ fn while_tracking(tracker: Arc<Mutex<MouseTracker>>) {
 
         tracker.update_tracking(position);
 
-        thread::sleep(Duration::from_millis(10));
+        thread::sleep(Duration::from_millis(1));
     }
 }
 
@@ -95,33 +98,37 @@ pub fn start() {
     enable_raw_mode().unwrap();
 
     let mouse_tracker = Arc::new(Mutex::new(MouseTracker::new()));
-
     let tracker_clone = Arc::clone(&mouse_tracker);
 
     thread::spawn(move || {
         while_tracking(tracker_clone);
     });
 
+    let mut tracking_active = false;
+    let mut stdout = stdout();
+
     loop {
         if event::poll(Duration::from_millis(100)).unwrap() {
             if let event::Event::Key(KeyEvent { code, .. }) = event::read().unwrap() {
                 match code {
-                    KeyCode::Char('r') => {
-                        println!("Started");
+                    KeyCode::Char('ğ') => {
+                        if tracking_active {
+                            let mut tracker = mouse_tracker.lock().unwrap();
+                            let total_yaw_movement = stop_tracking(&mut tracker);
 
-                        let mut tracker = mouse_tracker.lock().unwrap();
+                            queue!(stdout, Print(format!("\r\n{} pixels", total_yaw_movement)))
+                                .unwrap();
 
-                        start_tracking(&mut tracker);
-                    }
-                    KeyCode::Char('s') => {
-                        let mut tracker = mouse_tracker.lock().unwrap();
-                        let total_yaw_movement = stop_tracking(&mut tracker);
+                            stdout.flush().unwrap();
+                        } else {
+                            let mut tracker = mouse_tracker.lock().unwrap();
+                            start_tracking(&mut tracker);
+                        }
 
-                        println!("{} pixels", total_yaw_movement);
+                        tracking_active = !tracking_active;
                     }
                     KeyCode::Esc => {
                         disable_raw_mode().unwrap();
-
                         break;
                     }
                     _ => {}
