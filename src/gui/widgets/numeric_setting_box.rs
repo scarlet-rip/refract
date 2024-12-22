@@ -1,6 +1,6 @@
 use super::{Num, NumericInput, WidgetState};
 use bon::Builder;
-use egui::{Align, Color32, Context, Layout, Response, TextStyle, Ui, Widget};
+use egui::{Align, Color32, Context, Layout, Response, TextStyle, Ui, Widget, WidgetText};
 
 impl WidgetState for NumericSettingInputState {}
 #[derive(Default, Clone)]
@@ -14,8 +14,11 @@ pub(crate) struct NumericSettingInput<'b, N: Num> {
     #[builder(start_fn)]
     value: &'b mut N,
 
-    separator: Option<String>,
-    name: String,
+    #[builder(into)]
+    separator: Option<WidgetText>,
+
+    #[builder(into)]
+    name: WidgetText,
 
     #[builder(name = setting_box_width)]
     input_setting_box_width: f32,
@@ -34,7 +37,10 @@ pub(crate) struct NumericSettingInput<'b, N: Num> {
 
 impl<N: Num> Widget for NumericSettingInput<'_, N> {
     fn ui(self, ui: &mut Ui) -> Response {
-        let mut state = NumericSettingInputState::load_or_default(ui, &self.name);
+        let owned_name = self.name.to_owned();
+        let id_salt = owned_name.text();
+
+        let mut state = NumericSettingInputState::load_or_default(ui, id_salt);
 
         if state.cached_input_setting_box_width != self.input_setting_box_width {
             self.calculate_input_field_width(ui, &mut state);
@@ -42,18 +48,18 @@ impl<N: Num> Widget for NumericSettingInput<'_, N> {
 
         let response = ui
             .with_layout(Layout::top_down(Align::Min), |ui| {
-                ui.label(&self.name);
+                ui.label(self.name);
 
                 ui.horizontal(|ui| {
                     let input = ui.add(
                         NumericInput::builder(self.value)
                             .interactive(self.is_interactive)
                             .desired_width(state.width)
-                            .id_salt(&self.name)
+                            .id_salt(id_salt)
                             .build(),
                     );
 
-                    if let Some(separator) = &self.separator {
+                    if let Some(separator) = self.separator {
                         ui.label(separator);
                     }
 
@@ -63,7 +69,7 @@ impl<N: Num> Widget for NumericSettingInput<'_, N> {
             .inner
             .inner;
 
-        state.save_state(ui, &self.name);
+        state.save_state(ui, id_salt);
 
         response
     }
@@ -78,10 +84,10 @@ impl<N: Num> NumericSettingInput<'_, N> {
             let mut separator_width: f32 = 0.0;
 
             if let Some(separator) = &self.separator {
-                separator_width = calculate_text_width(ui.ctx(), separator, TextStyle::Body);
+                separator_width = calculate_text_width(ui.ctx(), separator.text(), TextStyle::Body);
             }
 
-            let label_width = calculate_text_width(ui.ctx(), &self.name, TextStyle::Body);
+            let label_width = calculate_text_width(ui.ctx(), self.name.text(), TextStyle::Body);
 
             state.width = base_input_field_width - separator_width - label_width;
         } else {

@@ -42,8 +42,8 @@ impl YawIncrementCalculator {
                     sens_input = Some(
                         ui.add(
                             NumericSettingInput::builder(&mut self.sens)
-                                .name("Sens".into())
-                                .separator("x".into())
+                                .name("Sens")
+                                .separator("x")
                                 .setting_box_width(self.available_width)
                                 .num_total_setting_inputs(AMOUNT_OF_FIELDS)
                                 .build(),
@@ -53,8 +53,8 @@ impl YawIncrementCalculator {
                     yaw_input = Some(
                         ui.add(
                             NumericSettingInput::builder(&mut self.yaw)
-                                .name("Yaw".into())
-                                .separator("=".into())
+                                .name("Yaw")
+                                .separator("=")
                                 .setting_box_width(self.available_width)
                                 .num_total_setting_inputs(AMOUNT_OF_FIELDS)
                                 .build(),
@@ -63,7 +63,7 @@ impl YawIncrementCalculator {
 
                     ui.add(
                         NumericSettingInput::builder(&mut self.yaw_increment)
-                            .name("Yaw Increment".into())
+                            .name("Yaw Increment")
                             .setting_box_width(self.available_width)
                             .num_total_setting_inputs(AMOUNT_OF_FIELDS)
                             .is_last(true)
