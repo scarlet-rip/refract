@@ -1,4 +1,5 @@
 use super::{Num, NumericInput, WidgetState};
+use bon::Builder;
 use egui::{Align, Color32, Context, Layout, Response, TextStyle, Ui, Widget};
 
 impl WidgetState for NumericSettingInputState {}
@@ -8,13 +9,26 @@ struct NumericSettingInputState {
     cached_input_setting_box_width: f32,
 }
 
+#[derive(Builder)]
 pub(crate) struct NumericSettingInput<'b, N: Num> {
-    input_setting_box_width: f32,
-    input_setting_box_amount_of_fields: u16,
+    #[builder(start_fn)]
     value: &'b mut N,
+
     separator: Option<String>,
     name: String,
+
+    #[builder(name = setting_box_width)]
+    input_setting_box_width: f32,
+
+    #[builder(name = num_total_setting_inputs)]
+    input_setting_box_amount_of_fields: u16,
+
+    #[builder(default = false)]
+    #[builder(name = is_last)]
     is_last: bool,
+
+    #[builder(default = true)]
+    #[builder(name = interactive)]
     is_interactive: bool,
 }
 
@@ -32,9 +46,11 @@ impl<N: Num> Widget for NumericSettingInput<'_, N> {
 
                 ui.horizontal(|ui| {
                     let input = ui.add(
-                        NumericInput::new(&self.name, self.value)
+                        NumericInput::builder(self.value)
+                            .interactive(self.is_interactive)
                             .desired_width(state.width)
-                            .interactive(self.is_interactive),
+                            .id_salt(&self.name)
+                            .build(),
                     );
 
                     if let Some(separator) = &self.separator {
@@ -53,31 +69,7 @@ impl<N: Num> Widget for NumericSettingInput<'_, N> {
     }
 }
 
-impl<'b, N: Num> NumericSettingInput<'b, N> {
-    pub fn new(
-        name: String,
-        separator: Option<String>,
-        input_setting_box_width: f32,
-        input_setting_box_amount_of_fields: u16,
-        is_last: bool,
-        value: &'b mut N,
-    ) -> Self {
-        Self {
-            input_setting_box_width,
-            input_setting_box_amount_of_fields,
-            value,
-            separator,
-            name,
-            is_last,
-            is_interactive: true,
-        }
-    }
-
-    pub fn interactive(mut self, is_interactive: bool) -> Self {
-        self.is_interactive = is_interactive;
-        self
-    }
-
+impl<N: Num> NumericSettingInput<'_, N> {
     fn calculate_input_field_width(&self, ui: &mut Ui, state: &mut NumericSettingInputState) {
         let base_input_field_width =
             self.input_setting_box_width / self.input_setting_box_amount_of_fields as f32;

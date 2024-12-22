@@ -39,34 +39,36 @@ impl YawIncrementCalculator {
                 ui.add(Separator::default());
 
                 ui.with_layout(Layout::left_to_right(Align::Min), |ui| {
-                    sens_input = Some(ui.add(NumericSettingInput::<f32>::new(
-                        "Sens".into(),
-                        Some("x".into()),
-                        self.available_width,
-                        AMOUNT_OF_FIELDS,
-                        false,
-                        &mut self.sens,
-                    )));
+                    sens_input = Some(
+                        ui.add(
+                            NumericSettingInput::builder(&mut self.sens)
+                                .name("Sens".into())
+                                .separator("x".into())
+                                .setting_box_width(self.available_width)
+                                .num_total_setting_inputs(AMOUNT_OF_FIELDS)
+                                .build(),
+                        ),
+                    );
 
-                    yaw_input = Some(ui.add(NumericSettingInput::<f32>::new(
-                        "Yaw".into(),
-                        Some("=".into()),
-                        self.available_width,
-                        AMOUNT_OF_FIELDS,
-                        false,
-                        &mut self.yaw,
-                    )));
+                    yaw_input = Some(
+                        ui.add(
+                            NumericSettingInput::builder(&mut self.yaw)
+                                .name("Yaw".into())
+                                .separator("=".into())
+                                .setting_box_width(self.available_width)
+                                .num_total_setting_inputs(AMOUNT_OF_FIELDS)
+                                .build(),
+                        ),
+                    );
 
                     ui.add(
-                        NumericSettingInput::<f32>::new(
-                            "Yaw increment".into(),
-                            None,
-                            self.available_width,
-                            AMOUNT_OF_FIELDS,
-                            true,
-                            &mut self.yaw_increment,
-                        )
-                        .interactive(false),
+                        NumericSettingInput::builder(&mut self.yaw_increment)
+                            .name("Yaw Increment".into())
+                            .setting_box_width(self.available_width)
+                            .num_total_setting_inputs(AMOUNT_OF_FIELDS)
+                            .is_last(true)
+                            .interactive(false)
+                            .build(),
                     );
 
                     self.update_yaw_increment_if_needed(

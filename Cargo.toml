@@ -31,8 +31,7 @@ features = [ "xdo", "wayland" ]
 [patch.crates-io.enigo]
 path = "./enigo-patch"
 
-# TODO: Use bon for building widgets
-# [dependencies.bon]
-# version = "3.3.0"
-# default-features = false
-# features = [ "std" ]
+[dependencies.bon]
+version = "3.3.0"
+default-features = false
+features = [ "std" ]

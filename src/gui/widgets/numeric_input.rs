@@ -1,4 +1,5 @@
 use super::WidgetState;
+use bon::Builder;
 use egui::{Response, TextEdit, Ui, Widget};
 use std::{fmt::Display, str::FromStr};
 
@@ -27,10 +28,18 @@ pub(crate) struct NumericInputState {
     is_text_buffer_valid: bool,
 }
 
+#[derive(Builder)]
 pub(crate) struct NumericInput<'b, N: Num> {
-    id_salt: &'b str,
-    desired_width: f32,
+    #[builder(start_fn)]
     value_buffer: &'b mut N,
+
+    id_salt: &'b str,
+
+    #[builder(default = 6.0)]
+    desired_width: f32,
+
+    #[builder(default = true)]
+    #[builder(name = interactive)]
     is_interactive: bool,
 }
 
@@ -71,28 +80,5 @@ impl<N: Num> Widget for NumericInput<'_, N> {
         state.save_state(ui, self.id_salt);
 
         text_edit
-    }
-}
-
-impl<'b, N: Num> NumericInput<'b, N> {
-    pub fn new(id_salt: &'b str, value_buffer: &'b mut N) -> Self {
-        Self {
-            id_salt,
-            value_buffer,
-            desired_width: f32::default(),
-            is_interactive: true,
-        }
-    }
-
-    pub fn desired_width(mut self, width: f32) -> Self {
-        self.desired_width = width;
-
-        self
-    }
-
-    pub fn interactive(mut self, is_interactive: bool) -> Self {
-        self.is_interactive = is_interactive;
-
-        self
     }
 }
