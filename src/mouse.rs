@@ -1,13 +1,10 @@
-use crossterm::event::{self, KeyCode};
+use crossterm::event::{self, KeyCode, KeyModifiers};
 use crossterm::{
     event::KeyEvent,
     terminal::{disable_raw_mode, enable_raw_mode},
 };
 use crossterm::{queue, style::Print};
-use hyprland::{
-    data::CursorPosition,
-    shared::{HyprData, HyprError},
-};
+use evdev::{Device, InputEventKind, RelativeAxisType};
 use std::{
     io::{stdout, Write},
     sync::{Arc, Mutex},
@@ -15,82 +12,25 @@ use std::{
     time::Duration,
 };
 
-pub(crate) fn get_mouse_location() -> Result<(i64, i64), HyprError> {
-    let position = CursorPosition::get()?;
-
-    Ok((position.x, position.y))
-}
-
 pub struct MouseTracker {
-    last_position: Option<(i64, i64)>,
-    total_distance: i64,
+    total_distance: i32,
 }
 
 impl MouseTracker {
     pub fn new() -> Self {
-        MouseTracker {
-            last_position: None,
-            total_distance: 0,
-        }
+        MouseTracker { total_distance: 0 }
     }
 
-    pub fn start_tracking(&mut self, position: (i64, i64)) {
-        self.last_position = Some(position);
+    pub fn start_tracking(&mut self) {
         self.total_distance = 0;
     }
 
-    pub fn stop_tracking(&mut self, position: (i64, i64)) {
-        if let Some(last_pos) = self.last_position {
-            let dx = position.0 - last_pos.0;
-
-            self.total_distance += dx.abs();
-        }
+    pub fn stop_tracking(&mut self) -> i32 {
+        self.total_distance.abs()
     }
 
-    pub fn update_tracking(&mut self, position: (i64, i64)) {
-        if let Some(last_pos) = self.last_position {
-            let dx = position.0 - last_pos.0;
-
-            self.total_distance += dx.abs();
-        }
-
-        self.last_position = Some(position);
-    }
-
-    pub fn get_total_distance(&self) -> i64 {
-        self.total_distance
-    }
-
-    pub fn reset(&mut self) {
-        self.last_position = Some((0, 0));
-        self.total_distance = 0;
-    }
-}
-
-fn start_tracking(tracker: &mut MouseTracker) {
-    tracker.reset();
-
-    let start_position = get_mouse_location().unwrap();
-
-    tracker.start_tracking(start_position);
-}
-
-fn stop_tracking(tracker: &mut MouseTracker) -> i64 {
-    let end_position = get_mouse_location().unwrap();
-
-    tracker.stop_tracking(end_position);
-
-    tracker.get_total_distance()
-}
-
-fn while_tracking(tracker: Arc<Mutex<MouseTracker>>) {
-    loop {
-        let position = get_mouse_location().unwrap();
-        let mut tracker = tracker.lock().unwrap();
-
-        tracker.update_tracking(position);
-
-        thread::sleep(Duration::from_millis(1));
+    pub fn update_tracking(&mut self, distance: i32) {
+        self.total_distance += distance;
     }
 }
 
@@ -100,42 +40,51 @@ pub fn start() {
     let mouse_tracker = Arc::new(Mutex::new(MouseTracker::new()));
     let tracker_clone = Arc::clone(&mouse_tracker);
 
-    thread::spawn(move || {
-        while_tracking(tracker_clone);
+    let device_path = "/dev/input/event0";
+    let mut device = Device::open(device_path).unwrap();
+
+    thread::spawn(move || loop {
+        let events = device.fetch_events().unwrap();
+
+        events.into_iter().for_each(|event| {
+            if let InputEventKind::RelAxis(RelativeAxisType::REL_X) = event.kind() {
+                tracker_clone.lock().unwrap().update_tracking(event.value());
+            }
+        });
     });
 
     let mut tracking_active = false;
     let mut stdout = stdout();
 
     loop {
-        if event::poll(Duration::from_millis(100)).unwrap() {
-            if let event::Event::Key(KeyEvent { code, .. }) = event::read().unwrap() {
-                match code {
-                    KeyCode::Char('ğ') => {
-                        if tracking_active {
-                            let mut tracker = mouse_tracker.lock().unwrap();
-                            let total_yaw_movement = stop_tracking(&mut tracker);
+        if event::poll(Duration::from_millis(10)).unwrap() {
+            if let event::Event::Key(KeyEvent {
+                code, modifiers, ..
+            }) = event::read().unwrap()
+            {
+                if modifiers.contains(KeyModifiers::ALT) && code == KeyCode::Char('r') {
+                    if tracking_active {
+                        let mut tracker = mouse_tracker.lock().unwrap();
+                        let total_yaw_movement = tracker.stop_tracking();
 
-                            queue!(stdout, Print(format!("\r\n{} pixels", total_yaw_movement)))
-                                .unwrap();
+                        queue!(stdout, Print(format!("\r\n{} pixels", total_yaw_movement)))
+                            .unwrap();
 
-                            stdout.flush().unwrap();
-                        } else {
-                            let mut tracker = mouse_tracker.lock().unwrap();
-                            start_tracking(&mut tracker);
-                        }
+                        stdout.flush().unwrap();
+                    } else {
+                        let mut tracker = mouse_tracker.lock().unwrap();
 
-                        tracking_active = !tracking_active;
+                        tracker.start_tracking();
                     }
-                    KeyCode::Esc => {
-                        disable_raw_mode().unwrap();
-                        break;
-                    }
-                    _ => {}
+
+                    tracking_active = !tracking_active;
+                }
+
+                if code == KeyCode::Esc {
+                    disable_raw_mode().unwrap();
+                    break;
                 }
             }
         }
-
-        thread::sleep(Duration::from_millis(10));
     }
 }

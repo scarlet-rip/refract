@@ -2,14 +2,14 @@
 	- ### System
 		- `DPI`: 400
 		- `PPI`: 166
-		- `horizontal screen resolution`: TODO
-		- `screen width`: TODO
-		- `screen height`: TODO
+		- `horizontal screen resolution`: 1920
+		- `screen width`: 1920
+		- `screen height`: 1080
+	- ### Aimlabs
+		- `in-game sensitivity`: 0.67
+		- `horizontal 360° distance (in pixels)`: 10744
+		- `FOV`: 90
 	- ### Helldivers 2
-		- `in-game sensitivity`: TODO
-		- `horizontal 360° distance (in pixels)`: TODO
-		- `FOV`: TODO
-	- ### Black Desert Online
 		- `in-game sensitivity`: TODO
 		- `horizontal 360° distance (in pixels)`: TODO
 		- `FOV`: TODO

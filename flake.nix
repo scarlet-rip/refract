@@ -11,7 +11,7 @@
       perSystem = { config, self', pkgs, lib, system, ... }:
         let
 		  enigoDeps = with pkgs; [ xdotool ];
-		  eframeDeps = with pkgs; [ libxkbcommon libGL wayland xorg.libX11 ];
+		  eframeDeps = with pkgs; [ libxkbcommon libGL wayland xorg.libX11 libudev-zero ];
           runtimeDeps = enigoDeps ++ eframeDeps;
 
           buildDeps = with pkgs; [ pkg-config ];
@@ -38,6 +38,13 @@
               buildInputs = runtimeDeps;
               nativeBuildInputs = buildDeps ++ [ rustc ];
 			  LD_LIBRARY_PATH = "${lib.makeLibraryPath runtimeDeps}";
+			  shellHook = 
+			  ''
+			  export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:${pkgs.libxkbcommon}/lib/pkgconfig"
+
+			  echo "newgrp might ask for the password of the input group"
+			  newgrp input
+  			  '';
             };
         in {
           _module.args.pkgs = import inputs.nixpkgs {

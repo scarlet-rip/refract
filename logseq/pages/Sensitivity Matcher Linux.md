@@ -5,4 +5,4 @@
 		- [[Aspect Ratio Sensitivity Adjustment (ARSA)]]
 		- [[Sensitivity Conversion Between Games]]
 	- Example
-		- [[Sensitivity Conversion: Helldivers 2 and Black Desert Online]]
+		- [[Sensitivity Conversion: Aimlabs to Helldivers 2]]
