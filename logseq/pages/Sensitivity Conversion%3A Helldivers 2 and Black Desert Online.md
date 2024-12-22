@@ -1,0 +1,19 @@
+### Information about the games/system
+	- ### System
+		- `DPI`: 400
+		- `PPI`: 166
+		- `horizontal screen resolution`: TODO
+		- `screen width`: TODO
+		- `screen height`: TODO
+	- ### Helldivers 2
+		- `in-game sensitivity`: TODO
+		- `horizontal 360° distance (in pixels)`: TODO
+		- `FOV`: TODO
+	- ### Black Desert Online
+		- `in-game sensitivity`: TODO
+		- `horizontal 360° distance (in pixels)`: TODO
+		- `FOV`: TODO
+- ### TODO: Calculating BSF
+- ### TODO: Calculating SSF (Not necessary for this example)
+- ###  TODO: Calculating ARSA (Not necessary for this example)
+- ### TODO: Final Conversion

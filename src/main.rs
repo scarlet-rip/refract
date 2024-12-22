@@ -1,11 +1,15 @@
-use sens_matcher_linux::run_gui;
+//use sens_matcher_linux::run_gui;
 use tracing::{subscriber, Level};
 use tracing_subscriber::FmtSubscriber;
 
 fn main() -> eframe::Result {
     setup_tracing_subscriber();
 
-    run_gui()
+    //run_gui()
+
+    sens_matcher_linux::start();
+
+    Ok(())
 }
 
 fn setup_tracing_subscriber() {
