@@ -1,29 +1,23 @@
 ### Formula
 	- This formula combines the results of **BSF**, **FRSN** and **ARSA** to provide full sensitivity conversion between two games/systems.
 	- $$
-	  \text{converted sensitivity} = \left( \frac{{\text{original in-game sensitivity} \times \text{target BSF}}}{{\text{original BSF}}} \right) \times \text{original to target FRSN} \times \text{original to target ARSA}
+	  \text{converted sensitivity} = \text{original in-game sensitivity} \times \left( \frac{\text{target pixels per 360°}}{\text{original pixels per 360°}} \right)
 	  $$
 - ### Parameters
 	- `original in-game sensitivity`: The in-game sensitivity of the game you're converting from.
-	- `original BSF`: [[Base Sensitivity Factor (BSF)]]
-	- `target BSF`: [[Base Sensitivity Factor (BSF)]]
-	-
-	- `original to target FRSN`: [[FOV-Resolution Sensitivity Normalizer (FRSN)]]
-	- `original to target ARSA`: [[Aspect Ratio Sensitivity Adjuster(ARSA)]]
+	- `target pixels per 360°`: Pixels required to do a horizontal 360° turn in the target game.
+	- `original pixels per 360°`: Pixels required to do a horizontal 360° turn in the original game.
 - ### Rust Example
   id:: 676a9147-49cd-45fb-b712-c287ba479ed5
-	- [Rust Playground](https://play.rust-lang.org/?gist=5a3eab1a5e428d14675fa387f39a23a6)
+	- [Rust Playground](https://play.rust-lang.org/?gist=5fb8567d3e619c92e096ffc33186f583)
 	- ```rust
 	  fn convert_sensitivity(
 	      original_in_game_sensitivity: f64,
-	      original_bsf: f64,
-	      target_bsf: f64,
-	      frsn: f64,
-	      arsa: f64,
+	      original_pixels_per_360: u16,
+	      target_pixels_per_360: u16,
 	  ) -> f64 {
-	      let bcs = original_in_game_sensitivity * original_bsf;
-	      let aas = bcs / target_bsf;
+	      let d360_difference = target_pixels_per_360 as f64 / original_pixels_per_360 as f64;
 	  
-	      aas * frsn * arsa
+	      original_in_game_sensitivity * d360_difference
 	  }
 	  ```
