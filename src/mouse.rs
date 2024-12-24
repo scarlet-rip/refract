@@ -87,21 +87,32 @@ fn input_receiver_left_alt_t() -> mpsc::Receiver<()> {
     start_tracking_key_receiver
 }
 
-pub fn start() {
+pub fn start() -> (mpsc::Receiver<bool>, mpsc::Receiver<i32>) {
     let mouse_tracker = Arc::new(Mutex::new(MouseTracker::new()));
     let start_tracking_key_receiver = input_receiver_left_alt_t();
 
     mouse_tracker_updater(&mouse_tracker);
 
-    while start_tracking_key_receiver.recv().is_ok() {
-        let mut mouse_tracker = mouse_tracker.lock().unwrap();
+    let (total_movement_sender, total_movement_receiver) = mpsc::channel::<i32>();
+    let (tracking_status_sender, tracking_status_receiver) = mpsc::channel::<bool>();
 
-        if mouse_tracker.is_tracking() {
-            let total_yaw_movement = mouse_tracker.stop_tracking();
+    thread::spawn(move || {
+        while start_tracking_key_receiver.recv().is_ok() {
+            let mut mouse_tracker = mouse_tracker.lock().unwrap();
 
-            println!("{} pixels", total_yaw_movement);
-        } else {
-            mouse_tracker.start_tracking();
+            if mouse_tracker.is_tracking() {
+                tracking_status_sender.send(false).unwrap();
+
+                let total_yaw_movement = mouse_tracker.stop_tracking();
+
+                total_movement_sender.send(total_yaw_movement).unwrap();
+            } else {
+                tracking_status_sender.send(true).unwrap();
+
+                mouse_tracker.start_tracking();
+            }
         }
-    }
+    });
+
+    (tracking_status_receiver, total_movement_receiver)
 }

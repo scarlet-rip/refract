@@ -1,13 +1,11 @@
-//use sens_matcher_linux::run_gui;
+use sens_matcher_linux::run_gui;
 use tracing::{subscriber, Level};
 use tracing_subscriber::FmtSubscriber;
 
 fn main() -> eframe::Result {
     setup_tracing_subscriber();
 
-    //run_gui()
-
-    sens_matcher_linux::start();
+    run_gui()?;
 
     Ok(())
 }
@@ -17,5 +15,5 @@ fn setup_tracing_subscriber() {
         .with_max_level(Level::DEBUG)
         .finish();
 
-    subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+    subscriber::set_global_default(subscriber).expect("failed to set the default subscriber failed");
 }

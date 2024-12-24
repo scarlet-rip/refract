@@ -11,9 +11,9 @@
       perSystem = { config, self', pkgs, lib, system, ... }:
         let
 		  enigoDeps = with pkgs; [ xdotool ];
-		  eframeDeps = with pkgs; [ libxkbcommon libGL wayland xorg.libX11 libudev0-shim xorg.libXi xorg.libXtst libinput libgudev usbutils ];
-          runtimeDeps = enigoDeps ++ eframeDeps;
+		  eframeDeps = with pkgs; [ libxkbcommon libGL wayland ];
 
+          runtimeDeps = enigoDeps ++ eframeDeps;
           buildDeps = with pkgs; [ pkg-config ];
 
           cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
@@ -40,10 +40,10 @@
 			  LD_LIBRARY_PATH = "${lib.makeLibraryPath runtimeDeps}";
 			  shellHook = 
 			  ''
-			  export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:${pkgs.libxkbcommon}/lib/pkgconfig"
+			  sudo setfacl -m u:$(whoami):rw /dev/input/event0
+			  sudo setfacl -m u:$(whoami):rw /dev/input/event26
 
-			  echo "newgrp might ask for the password of the input group"
-			  newgrp input
+			  trap "sudo setfacl -x u:$(whoami) /dev/input/event0 && sudo setfacl -x u:$(whoami) /dev/input/event26" SIGINT EXIT
   			  '';
             };
         in {
