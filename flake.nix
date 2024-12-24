@@ -11,7 +11,7 @@
       perSystem = { config, self', pkgs, lib, system, ... }:
         let
 		  enigoDeps = with pkgs; [ xdotool ];
-		  eframeDeps = with pkgs; [ libxkbcommon libGL wayland xorg.libX11 libudev-zero ];
+		  eframeDeps = with pkgs; [ libxkbcommon libGL wayland xorg.libX11 libudev0-shim xorg.libXi xorg.libXtst libinput libgudev usbutils ];
           runtimeDeps = enigoDeps ++ eframeDeps;
 
           buildDeps = with pkgs; [ pkg-config ];

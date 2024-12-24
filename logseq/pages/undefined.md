@@ -1,0 +1,1 @@
+- **08:16** [[quick capture]]:  [HTML web clipping : r/logseq](https://www.reddit.com/r/logseq/comments/172w9ow/html_web_clipping/)

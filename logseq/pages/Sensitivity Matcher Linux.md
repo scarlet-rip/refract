@@ -1,8 +1,8 @@
 ## Contents
 	- Formulas
 		- [[Base Sensitivity Factor (BSF)]]
-		- [[Standard Sensitivity Factor (SSF)]]
-		- [[Aspect Ratio Sensitivity Adjustment (ARSA)]]
+		- [[FOV-Resolution Sensitivity Normalizer (FRSN)]]
+		- [[Aspect Ratio Sensitivity Adjuster(ARSA)]]
 		- [[Sensitivity Conversion Between Games]]
 	- Example
-		- [[Sensitivity Conversion: Aimlabs to Helldivers 2]]
+		- [[Sensitivity Conversion: Aimlabs to Roblox]]
