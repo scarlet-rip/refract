@@ -1,7 +1,7 @@
 use super::widgets::MainPanel;
 use eframe::Frame;
 use eframe::NativeOptions;
-use egui::{Context, Vec2, ViewportBuilder};
+use egui::{Context, Vec2, ViewportBuilder, WindowLevel};
 
 const PINNED_WINDOW_SIZE: Vec2 = Vec2::new(450.0, 350.0);
 const APP_ID: &str = "rip.scarlet.pixelgauge";
@@ -15,7 +15,9 @@ impl eframe::App for MainPanel {
 
 pub fn run_eframe() -> eframe::Result {
     let options = NativeOptions {
+        centered: true,
         viewport: ViewportBuilder::default()
+            .with_window_level(WindowLevel::AlwaysOnTop)
             .with_resizable(false)
             .with_app_id(APP_ID)
             .with_title(WINDOW_TITLE)
