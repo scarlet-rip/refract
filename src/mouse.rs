@@ -60,8 +60,9 @@ fn mouse_tracker_updater(mouse_tracker_mutex: &Arc<Mutex<MouseTracker>>) {
     });
 }
 
-fn input_receiver_left_alt_t() -> mpsc::Receiver<()> {
+fn input_handler() -> (mpsc::Receiver<()>, mpsc::Receiver<()>) {
     let (start_tracking_key_sender, start_tracking_key_receiver) = mpsc::channel::<()>();
+    let (do_360_sender, do_360_receiver) = mpsc::channel::<()>();
 
     thread::spawn(move || {
         let keyboard_device_path = "/dev/input/event26";
@@ -80,16 +81,68 @@ fn input_receiver_left_alt_t() -> mpsc::Receiver<()> {
                         start_tracking_key_sender.send(()).unwrap();
                     }
                 }
+
+                if let InputEventKind::Key(Key::KEY_G) = event.kind() {
+                    if event.value() == 1 && is_alt_down {
+                        do_360_sender.send(()).unwrap();
+                    }
+                }
             }
         }
     });
 
-    start_tracking_key_receiver
+    (start_tracking_key_receiver, do_360_receiver)
 }
 
-pub fn start() -> (mpsc::Receiver<bool>, mpsc::Receiver<i32>) {
+pub fn start() -> (mpsc::Receiver<bool>, mpsc::Receiver<i32>, mpsc::Sender<u32>) {
     let mouse_tracker = Arc::new(Mutex::new(MouseTracker::new()));
-    let start_tracking_key_receiver = input_receiver_left_alt_t();
+    let (start_tracking_receiver, do_360_receiver) = input_handler();
+
+    let (do_360_pixel_amount_sender, do_360_pixel_amount_receiver) = mpsc::channel::<u32>();
+
+    let do_360_pixel_amount = Arc::new(Mutex::new(0));
+
+    {
+        let shared_do_360_pixel_amount = Arc::clone(&do_360_pixel_amount);
+
+        thread::spawn(move || {
+            while let Ok(pixel_amount) = do_360_pixel_amount_receiver.recv() {
+                *shared_do_360_pixel_amount.lock().unwrap() = pixel_amount;
+            }
+        });
+    }
+
+    {
+        use enigo::{Coordinate, Enigo, Mouse, Settings};
+        use std::thread;
+        use std::time::Duration;
+
+        let shared_do_360_pixel_amount = Arc::clone(&do_360_pixel_amount);
+
+        thread::spawn(move || {
+            let mut enigo = Enigo::new(&Settings::default()).unwrap();
+
+            while do_360_receiver.recv().is_ok() {
+                while do_360_receiver.recv().is_ok() {
+                    let pixels = *shared_do_360_pixel_amount.lock().unwrap() as i32;
+                    let chunk_size = 10;
+                    let delay = 5;
+
+                    for _ in 0..(pixels / chunk_size) {
+                        enigo.move_mouse(chunk_size, 0, Coordinate::Rel).unwrap();
+                        thread::sleep(Duration::from_millis(delay));
+                    }
+
+                    let remaining_pixels = pixels % chunk_size;
+                    if remaining_pixels > 0 {
+                        enigo
+                            .move_mouse(remaining_pixels, 0, Coordinate::Rel)
+                            .unwrap();
+                    }
+                }
+            }
+        });
+    }
 
     mouse_tracker_updater(&mouse_tracker);
 
@@ -97,7 +150,7 @@ pub fn start() -> (mpsc::Receiver<bool>, mpsc::Receiver<i32>) {
     let (tracking_status_sender, tracking_status_receiver) = mpsc::channel::<bool>();
 
     thread::spawn(move || {
-        while start_tracking_key_receiver.recv().is_ok() {
+        while start_tracking_receiver.recv().is_ok() {
             let mut mouse_tracker = mouse_tracker.lock().unwrap();
 
             if mouse_tracker.is_tracking() {
@@ -114,5 +167,9 @@ pub fn start() -> (mpsc::Receiver<bool>, mpsc::Receiver<i32>) {
         }
     });
 
-    (tracking_status_receiver, total_movement_receiver)
+    (
+        tracking_status_receiver,
+        total_movement_receiver,
+        do_360_pixel_amount_sender,
+    )
 }

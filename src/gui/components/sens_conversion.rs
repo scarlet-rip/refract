@@ -23,14 +23,18 @@ impl SensConversion {
             ui.add(TextEdit::singleline(&mut self.target_pixel_360));
 
             if ui.button("Convert").clicked() {
-                let original_in_game_sensitivity =
-                    self.original_in_game_sensitivity.parse::<f64>().unwrap();
-                let original_pixel_360 = self.original_pixel_360.parse::<f64>().unwrap();
-                let target_pixel_360 = self.target_pixel_360.parse::<f64>().unwrap();
+                if let Ok(original_in_game_sensitivity) =
+                    self.original_in_game_sensitivity.parse::<f64>()
+                {
+                    if let Ok(original_pixel_360) = self.original_pixel_360.parse::<f64>() {
+                        if let Ok(target_pixel_360) = self.target_pixel_360.parse::<f64>() {
+                            let d360_difference = target_pixel_360 / original_pixel_360;
 
-                let d360_difference = target_pixel_360 / original_pixel_360;
-
-                self.converted_sensitivity = original_in_game_sensitivity * d360_difference;
+                            self.converted_sensitivity =
+                                original_in_game_sensitivity * d360_difference;
+                        }
+                    }
+                }
             }
 
             ui.label(format!("{}", self.converted_sensitivity));
