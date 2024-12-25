@@ -1,5 +1,5 @@
-pub(crate) mod gui;
-pub use gui::run_gui;
+mod gui;
+pub use gui::run_eframe;
 
-pub(crate) mod mouse;
+mod mouse;
 pub use mouse::start;
