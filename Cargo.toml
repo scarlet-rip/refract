@@ -28,9 +28,6 @@ version = "0.3.0"
 default-features = false
 features = [ "xdo", "wayland" ]
 
-[patch.crates-io.enigo]
-path = "./enigo-patch"
-
 [dependencies.bon]
 version = "3.3.0"
 default-features = false
