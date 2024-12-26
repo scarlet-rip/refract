@@ -7,9 +7,14 @@ const PINNED_WINDOW_SIZE: Vec2 = Vec2::new(450.0, 350.0);
 const APP_ID: &str = "rip.scarlet.pixelgauge";
 const WINDOW_TITLE: &str = "Pixel Gauge";
 
-impl eframe::App for MainPanel {
+#[derive(Default)]
+struct EframeApp {
+    main_panel: MainPanel,
+}
+
+impl eframe::App for EframeApp {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
-        MainPanel::default().show(ctx);
+        self.main_panel.show(ctx);
     }
 }
 
@@ -30,6 +35,6 @@ pub fn run_eframe() -> eframe::Result {
     eframe::run_native(
         APP_ID,
         options,
-        Box::new(|_cc| Ok(Box::<MainPanel>::default())),
+        Box::new(|_cc| Ok(Box::<EframeApp>::default())),
     )
 }

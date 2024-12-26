@@ -4,6 +4,12 @@ pub(crate) use main_header::MainHeader;
 mod main_panel;
 pub(super) use main_panel::MainPanel;
 
+mod d360_measurement_demo;
+pub(crate) use d360_measurement_demo::D360MeasurementDemo;
+
+mod sensitivity_conversion_demo;
+pub(crate) use sensitivity_conversion_demo::SensitivityConversionDemo;
+
 use egui::{Id, Ui};
 use std::marker::{Send, Sync};
 
