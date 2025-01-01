@@ -65,7 +65,7 @@ fn input_handler() -> (mpsc::Receiver<()>, mpsc::Receiver<()>) {
     let (do_360_sender, do_360_receiver) = mpsc::channel::<()>();
 
     thread::spawn(move || {
-        let keyboard_device_path = "/dev/input/event26";
+        let keyboard_device_path = "/dev/input/event24";
         let mut keyboard_device = Device::open(keyboard_device_path).unwrap();
 
         let mut is_alt_down = false;
@@ -76,13 +76,13 @@ fn input_handler() -> (mpsc::Receiver<()>, mpsc::Receiver<()>) {
                     is_alt_down = event.value() == 1;
                 }
 
-                if let InputEventKind::Key(Key::KEY_T) = event.kind() {
+                if let InputEventKind::Key(Key::KEY_M) = event.kind() {
                     if event.value() == 1 && is_alt_down {
                         start_tracking_key_sender.send(()).unwrap();
                     }
                 }
 
-                if let InputEventKind::Key(Key::KEY_G) = event.kind() {
+                if let InputEventKind::Key(Key::KEY_X) = event.kind() {
                     if event.value() == 1 && is_alt_down {
                         do_360_sender.send(()).unwrap();
                     }
