@@ -43,7 +43,7 @@ fn mouse_tracker_updater(mouse_tracker_mutex: &Arc<Mutex<MouseTracker>>) {
         let mouse_tracker = Arc::clone(mouse_tracker_mutex);
 
         move || {
-            let mouse_device_path = "/dev/input/event1";
+            let mouse_device_path = "/dev/input/event0";
             let mut mouse_device = Device::open(mouse_device_path).unwrap();
 
             while let Ok(events) = mouse_device.fetch_events() {
@@ -94,11 +94,17 @@ fn input_handler() -> (mpsc::Receiver<()>, mpsc::Receiver<()>) {
     (start_tracking_key_receiver, do_360_receiver)
 }
 
-pub fn start() -> (mpsc::Receiver<bool>, mpsc::Receiver<i32>, mpsc::Sender<u32>) {
+pub fn start() -> (
+    mpsc::Receiver<bool>,
+    mpsc::Receiver<i32>,
+    mpsc::Sender<u32>,
+    mpsc::Receiver<bool>,
+) {
     let mouse_tracker = Arc::new(Mutex::new(MouseTracker::new()));
     let (start_tracking_receiver, do_360_receiver) = input_handler();
 
     let (do_360_pixel_amount_sender, do_360_pixel_amount_receiver) = mpsc::channel::<u32>();
+    let (do_360_pixel_status_sender, do_360_pixel_status_receiver) = mpsc::channel::<bool>();
 
     let do_360_pixel_amount = Arc::new(Mutex::new(0));
 
@@ -124,6 +130,8 @@ pub fn start() -> (mpsc::Receiver<bool>, mpsc::Receiver<i32>, mpsc::Sender<u32>)
 
             while do_360_receiver.recv().is_ok() {
                 while do_360_receiver.recv().is_ok() {
+                    do_360_pixel_status_sender.send(true).unwrap();
+
                     let pixels = *shared_do_360_pixel_amount.lock().unwrap() as i32;
                     let chunk_size = 10;
                     let delay = 5;
@@ -139,6 +147,8 @@ pub fn start() -> (mpsc::Receiver<bool>, mpsc::Receiver<i32>, mpsc::Sender<u32>)
                             .move_mouse(remaining_pixels, 0, Coordinate::Rel)
                             .unwrap();
                     }
+
+                    do_360_pixel_status_sender.send(false).unwrap();
                 }
             }
         });
@@ -171,5 +181,6 @@ pub fn start() -> (mpsc::Receiver<bool>, mpsc::Receiver<i32>, mpsc::Sender<u32>)
         tracking_status_receiver,
         total_movement_receiver,
         do_360_pixel_amount_sender,
+        do_360_pixel_status_receiver,
     )
 }

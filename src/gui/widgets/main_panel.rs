@@ -1,4 +1,4 @@
-use super::{MainHeader, D360MeasurementDemo, SensitivityConversionDemo};
+use super::{MainHeader, YawSweep, SensitivityConversionDemo};
 use egui::{CentralPanel, Context};
 
 const PROJECT_ID: &str = "GK-C-001";
@@ -7,7 +7,6 @@ const ASSIGNED_ENTITY: &str = "GK | Creators";
 
 #[derive(Default)]
 pub(crate) struct MainPanel {
-    d360_measurement_demo: D360MeasurementDemo,
     sensitivity_conversion_demo: SensitivityConversionDemo,
 }
 
@@ -22,7 +21,8 @@ impl MainPanel {
                     .build(),
             );
 
-            self.d360_measurement_demo.show(ui);
+            ui.add(YawSweep::default());
+
             self.sensitivity_conversion_demo.show(ui);
         });
     }

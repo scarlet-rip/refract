@@ -1,10 +1,9 @@
-use super::StatusLabel;
+use super::{KeybindActionLabel, StatusLabel, WidgetState};
 use crate::start;
-use egui::{
-    text::LayoutJob, Align, Color32, Label, Layout, RichText, TextEdit, TextFormat, TextStyle, Ui,
-};
+use egui::{Align, Color32, Layout, Response, RichText, TextEdit, Ui, Widget};
 use lazy_static::lazy_static;
 use std::sync::mpsc::{Receiver, Sender};
+use std::sync::{Arc, Mutex};
 
 const GROUP_HEADER_SIZE: f32 = 14.0;
 const PARTITION_HEADER_SIZE: f32 = 14.0;
@@ -24,38 +23,66 @@ lazy_static! {
         Color32::from_hex("#821E1E").expect("Invalid HEX");
 }
 
-pub(crate) struct D360MeasurementDemo {
-    pixel_360_distance: i32,
-    tracking_status: bool,
-    tracking_status_receiver: Receiver<bool>,
-    total_movement_receiver: Receiver<i32>,
-    do_360_pixel_amount_sender: Sender<u32>,
-    do_360_pixels: String,
-
-    is_sweep_active: bool,
-    is_measurement_active: bool,
+#[derive(Clone)]
+struct YawSweepState {
+    measurement_status_receiver: Arc<Mutex<Receiver<bool>>>,
+    sweep_execution_status_receiver: Arc<Mutex<Receiver<bool>>>,
+    sweep_distance_measurement_receiver: Arc<Mutex<Receiver<i32>>>,
+    sweep_execution_distance_sender: Arc<Mutex<Sender<u32>>>,
 }
 
-impl Default for D360MeasurementDemo {
-    fn default() -> Self {
-        let (tracking_status_receiver, total_movement_receiver, do_360_pixel_amount_sender) =
-            start();
-        Self {
-            pixel_360_distance: 0,
-            tracking_status: false,
-            tracking_status_receiver,
-            total_movement_receiver,
-            do_360_pixel_amount_sender,
-            do_360_pixels: String::default(),
+impl WidgetState for YawSweepState {}
 
-            is_sweep_active: false,
-            is_measurement_active: false,
+pub(crate) struct YawSweep {
+    measurement_status: bool,
+    measured_sweep_distance: i32,
+    measurement_status_receiver: Receiver<bool>,
+
+    sweep_execution_distance_buffer: String,
+    sweep_execution_status: bool,
+    sweep_execution_status_receiver: Receiver<bool>,
+    sweep_distance_measurement_receiver: Receiver<i32>,
+    sweep_execution_distance_sender: Sender<u32>,
+}
+
+impl Default for YawSweep {
+    fn default() -> Self {
+        let (
+            measurement_status_receiver,
+            sweep_distance_measurement_receiver,
+            sweep_execution_distance_sender,
+            sweep_execution_status_receiver,
+        ) = start();
+
+        Self {
+            measurement_status: false,
+            measured_sweep_distance: 0,
+            measurement_status_receiver,
+
+            sweep_execution_distance_buffer: String::default(),
+            sweep_execution_status: false,
+            sweep_execution_status_receiver,
+            sweep_distance_measurement_receiver,
+            sweep_execution_distance_sender,
         }
     }
 }
 
-impl D360MeasurementDemo {
-    pub(crate) fn show(&mut self, ui: &mut Ui) {
+impl Widget for YawSweep {
+    fn ui(mut self, ui: &mut Ui) -> Response {
+        if let Ok(measurement_status) = self.measurement_status_receiver.try_recv() {
+            self.measurement_status = measurement_status;
+        }
+
+        if let Ok(sweep_execution_status) = self.sweep_execution_status_receiver.try_recv() {
+            self.sweep_execution_status = sweep_execution_status;
+        }
+
+        if let Ok(sweep_distance_measurement) = self.sweep_distance_measurement_receiver.try_recv()
+        {
+            self.measured_sweep_distance = sweep_distance_measurement;
+        }
+
         ui.with_layout(Layout::top_down(Align::Center), |ui| {
             ui.label(
                 RichText::new("Yaw Sweep")
@@ -72,15 +99,20 @@ impl D360MeasurementDemo {
                                 .color(*PARTITION_HEADER_COLOR),
                         );
 
-                        ui.label(format!("Measured distance: {} px", self.pixel_360_distance));
+                        ui.label(format!(
+                            "Measured distance: {} px",
+                            self.measured_sweep_distance
+                        ));
 
                         ui.columns(2, |cols| {
                             cols[0].with_layout(Layout::right_to_left(Align::Min), |ui| {
-                                ui.add(create_keybind_action_label(ui, "ALT + X", "to measure"));
+                                ui.add(
+                                    KeybindActionLabel::builder("ALT + M", "to measure").build(),
+                                );
                             });
 
                             cols[1].add(
-                                StatusLabel::builder(self.is_measurement_active)
+                                StatusLabel::builder(self.measurement_status)
                                     .size(INFO_LABEL_SIZE)
                                     .build(),
                             );
@@ -103,27 +135,29 @@ impl D360MeasurementDemo {
                                         .size(PARTITION_INNER_LABEL_SIZE),
                                 );
 
-                                ui.add(create_keybind_action_label(
-                                    ui,
-                                    "ALT + M",
-                                    "to perform a sweep",
-                                ));
+                                ui.add(
+                                    KeybindActionLabel::builder("ALT + X", "to perform a sweep")
+                                        .build(),
+                                );
                             });
 
                             ui.with_layout(Layout::top_down(Align::Center), |ui| {
-                                let do_360_pixels_text_edit =
-                                    ui.add(TextEdit::singleline(&mut self.do_360_pixels));
+                                let do_360_pixels_text_edit = ui.add(TextEdit::singleline(
+                                    &mut self.sweep_execution_distance_buffer,
+                                ));
 
                                 if do_360_pixels_text_edit.changed() {
-                                    if let Ok(do_360_pixels) = self.do_360_pixels.parse::<u32>() {
-                                        self.do_360_pixel_amount_sender
+                                    if let Ok(do_360_pixels) =
+                                        self.sweep_execution_distance_buffer.parse::<u32>()
+                                    {
+                                        self.sweep_execution_distance_sender
                                             .send(do_360_pixels)
                                             .unwrap();
                                     }
                                 }
 
                                 ui.add(
-                                    StatusLabel::builder(self.is_sweep_active)
+                                    StatusLabel::builder(self.sweep_execution_status)
                                         .size(INFO_LABEL_SIZE)
                                         .build(),
                                 );
@@ -134,36 +168,6 @@ impl D360MeasurementDemo {
             });
         });
 
-        ui.separator();
+        ui.separator()
     }
-}
-
-fn create_keybind_action_label(ui: &Ui, keybind_text: &str, action_text: &str) -> Label {
-    let mut font_id = ui.ctx().style().text_styles[&TextStyle::Body].to_owned();
-    font_id.size = INFO_LABEL_SIZE;
-
-    let mut job = LayoutJob::default();
-
-    job.append(
-        &(keybind_text.to_owned() + "  "),
-        f32::default(),
-        TextFormat {
-            color: *KEYBIND_HIGHLIGHT_COLOR,
-            font_id: font_id.clone(),
-
-            ..Default::default()
-        },
-    );
-
-    job.append(
-        action_text,
-        f32::default(),
-        TextFormat {
-            font_id: font_id.clone(),
-
-            ..Default::default()
-        },
-    );
-
-    Label::new(job)
 }
