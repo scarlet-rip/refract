@@ -10,6 +10,9 @@ pub(crate) use d360_measurement_demo::D360MeasurementDemo;
 mod sensitivity_conversion_demo;
 pub(crate) use sensitivity_conversion_demo::SensitivityConversionDemo;
 
+mod status_label;
+pub(crate) use status_label::StatusLabel;
+
 use egui::{Id, Ui};
 use std::marker::{Send, Sync};
 

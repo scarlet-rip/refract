@@ -1,6 +1,7 @@
+use super::StatusLabel;
 use crate::start;
 use egui::{
-    text::LayoutJob, Align, Color32, Layout, RichText, TextEdit, TextFormat, TextStyle, Ui,
+    text::LayoutJob, Align, Color32, Label, Layout, RichText, TextEdit, TextFormat, TextStyle, Ui,
 };
 use lazy_static::lazy_static;
 use std::sync::mpsc::{Receiver, Sender};
@@ -17,9 +18,9 @@ lazy_static! {
     static ref PARTITION_HEADER_COLOR: Color32 = Color32::from_hex("#6b0707").expect("Invalid HEX");
     static ref KEYBIND_HIGHLIGHT_COLOR: Color32 =
         Color32::from_hex("#821E1E").expect("Invalid HEX");
-    static ref MEASUREMENT_STATUS_HIGHLIGHT_COLOR_ACTIVE: Color32 =
+    static ref STATUS_HIGHLIGHT_COLOR_ACTIVE: Color32 =
         Color32::from_hex("#076A19").expect("Invalid HEX");
-    static ref MEASUREMENT_STATUS_HIGHLIGHT_COLOR_INACTIVE: Color32 =
+    static ref STATUS_HIGHLIGHT_COLOR_INACTIVE: Color32 =
         Color32::from_hex("#821E1E").expect("Invalid HEX");
 }
 
@@ -31,6 +32,7 @@ pub(crate) struct D360MeasurementDemo {
     do_360_pixel_amount_sender: Sender<u32>,
     do_360_pixels: String,
 
+    is_sweep_active: bool,
     is_measurement_active: bool,
 }
 
@@ -46,6 +48,7 @@ impl Default for D360MeasurementDemo {
             do_360_pixel_amount_sender,
             do_360_pixels: String::default(),
 
+            is_sweep_active: false,
             is_measurement_active: false,
         }
     }
@@ -53,14 +56,6 @@ impl Default for D360MeasurementDemo {
 
 impl D360MeasurementDemo {
     pub(crate) fn show(&mut self, ui: &mut Ui) {
-        if let Ok(pixel_360_distance) = self.total_movement_receiver.try_recv() {
-            self.pixel_360_distance = pixel_360_distance;
-        }
-
-        if let Ok(tracking_status) = self.tracking_status_receiver.try_recv() {
-            self.tracking_status = tracking_status;
-        }
-
         ui.with_layout(Layout::top_down(Align::Center), |ui| {
             ui.label(
                 RichText::new("Yaw Sweep")
@@ -77,10 +72,19 @@ impl D360MeasurementDemo {
                                 .color(*PARTITION_HEADER_COLOR),
                         );
 
-                        ui.toggle_value(
-                            &mut self.tracking_status,
-                            format!("Measured distance: {} px", self.pixel_360_distance),
-                        );
+                        ui.label(format!("Measured distance: {} px", self.pixel_360_distance));
+
+                        ui.columns(2, |cols| {
+                            cols[0].with_layout(Layout::right_to_left(Align::Min), |ui| {
+                                ui.add(create_keybind_action_label(ui, "ALT + X", "to measure"));
+                            });
+
+                            cols[1].add(
+                                StatusLabel::builder(self.is_measurement_active)
+                                    .size(INFO_LABEL_SIZE)
+                                    .build(),
+                            );
+                        });
                     });
                 });
 
@@ -94,81 +98,19 @@ impl D360MeasurementDemo {
 
                         ui.with_layout(Layout::left_to_right(Align::Min), |ui| {
                             ui.with_layout(Layout::top_down(Align::Min), |ui| {
-                                let mut font_id =
-                                    ui.ctx().style().text_styles[&TextStyle::Body].to_owned();
-                                font_id.size = INFO_LABEL_SIZE;
-
-                                let mut job = LayoutJob::default();
-
-                                job.append(
-                                    "ALT + M",
-                                    f32::default(),
-                                    TextFormat {
-                                        color: *KEYBIND_HIGHLIGHT_COLOR,
-                                        font_id: font_id.clone(),
-
-                                        ..Default::default()
-                                    },
-                                );
-
-                                job.append(
-                                    " to perform a sweep",
-                                    f32::default(),
-                                    TextFormat {
-                                        font_id: font_id.clone(),
-
-                                        ..Default::default()
-                                    },
-                                );
-
                                 ui.label(
                                     RichText::new("Sweep distance (px):")
                                         .size(PARTITION_INNER_LABEL_SIZE),
                                 );
 
-                                ui.label(job);
+                                ui.add(create_keybind_action_label(
+                                    ui,
+                                    "ALT + M",
+                                    "to perform a sweep",
+                                ));
                             });
 
                             ui.with_layout(Layout::top_down(Align::Center), |ui| {
-                                let mut font_id =
-                                    ui.ctx().style().text_styles[&TextStyle::Body].to_owned();
-                                font_id.size = INFO_LABEL_SIZE;
-
-                                let mut job = LayoutJob::default();
-
-                                job.append(
-                                    "Status: ",
-                                    f32::default(),
-                                    TextFormat {
-                                        font_id: font_id.clone(),
-
-                                        ..Default::default()
-                                    },
-                                );
-
-                                let status_color = if self.is_measurement_active {
-                                    *MEASUREMENT_STATUS_HIGHLIGHT_COLOR_ACTIVE
-                                } else {
-                                    *MEASUREMENT_STATUS_HIGHLIGHT_COLOR_INACTIVE
-                                };
-
-                                let status_text = if self.is_measurement_active {
-                                    "Active"
-                                } else {
-                                    "Inactive"
-                                };
-
-                                job.append(
-                                    status_text,
-                                    f32::default(),
-                                    TextFormat {
-                                        color: status_color,
-                                        font_id,
-
-                                        ..Default::default()
-                                    },
-                                );
-
                                 let do_360_pixels_text_edit =
                                     ui.add(TextEdit::singleline(&mut self.do_360_pixels));
 
@@ -180,7 +122,11 @@ impl D360MeasurementDemo {
                                     }
                                 }
 
-                                ui.label(job);
+                                ui.add(
+                                    StatusLabel::builder(self.is_sweep_active)
+                                        .size(INFO_LABEL_SIZE)
+                                        .build(),
+                                );
                             });
                         });
                     });
@@ -190,4 +136,34 @@ impl D360MeasurementDemo {
 
         ui.separator();
     }
+}
+
+fn create_keybind_action_label(ui: &Ui, keybind_text: &str, action_text: &str) -> Label {
+    let mut font_id = ui.ctx().style().text_styles[&TextStyle::Body].to_owned();
+    font_id.size = INFO_LABEL_SIZE;
+
+    let mut job = LayoutJob::default();
+
+    job.append(
+        &(keybind_text.to_owned() + "  "),
+        f32::default(),
+        TextFormat {
+            color: *KEYBIND_HIGHLIGHT_COLOR,
+            font_id: font_id.clone(),
+
+            ..Default::default()
+        },
+    );
+
+    job.append(
+        action_text,
+        f32::default(),
+        TextFormat {
+            font_id: font_id.clone(),
+
+            ..Default::default()
+        },
+    );
+
+    Label::new(job)
 }

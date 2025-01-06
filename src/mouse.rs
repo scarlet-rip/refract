@@ -43,7 +43,7 @@ fn mouse_tracker_updater(mouse_tracker_mutex: &Arc<Mutex<MouseTracker>>) {
         let mouse_tracker = Arc::clone(mouse_tracker_mutex);
 
         move || {
-            let mouse_device_path = "/dev/input/event0";
+            let mouse_device_path = "/dev/input/event1";
             let mut mouse_device = Device::open(mouse_device_path).unwrap();
 
             while let Ok(events) = mouse_device.fetch_events() {
@@ -65,7 +65,7 @@ fn input_handler() -> (mpsc::Receiver<()>, mpsc::Receiver<()>) {
     let (do_360_sender, do_360_receiver) = mpsc::channel::<()>();
 
     thread::spawn(move || {
-        let keyboard_device_path = "/dev/input/event24";
+        let keyboard_device_path = "/dev/input/event4";
         let mut keyboard_device = Device::open(keyboard_device_path).unwrap();
 
         let mut is_alt_down = false;
