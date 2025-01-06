@@ -1,4 +1,4 @@
-use super::{MainHeader, YawSweep, SensitivityConversionDemo};
+use super::{MainHeader, SensitivityConversionDemo, YawSweep};
 use egui::{CentralPanel, Context};
 
 const PROJECT_ID: &str = "GK-C-001";

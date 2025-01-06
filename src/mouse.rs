@@ -129,27 +129,25 @@ pub fn start() -> (
             let mut enigo = Enigo::new(&Settings::default()).unwrap();
 
             while do_360_receiver.recv().is_ok() {
-                while do_360_receiver.recv().is_ok() {
-                    do_360_pixel_status_sender.send(true).unwrap();
+                do_360_pixel_status_sender.send(true).unwrap();
 
-                    let pixels = *shared_do_360_pixel_amount.lock().unwrap() as i32;
-                    let chunk_size = 10;
-                    let delay = 5;
+                let pixels = *shared_do_360_pixel_amount.lock().unwrap() as i32;
+                let chunk_size = 10;
+                let delay = 5;
 
-                    for _ in 0..(pixels / chunk_size) {
-                        enigo.move_mouse(chunk_size, 0, Coordinate::Rel).unwrap();
-                        thread::sleep(Duration::from_millis(delay));
-                    }
-
-                    let remaining_pixels = pixels % chunk_size;
-                    if remaining_pixels > 0 {
-                        enigo
-                            .move_mouse(remaining_pixels, 0, Coordinate::Rel)
-                            .unwrap();
-                    }
-
-                    do_360_pixel_status_sender.send(false).unwrap();
+                for _ in 0..(pixels / chunk_size) {
+                    enigo.move_mouse(chunk_size, 0, Coordinate::Rel).unwrap();
+                    thread::sleep(Duration::from_millis(delay));
                 }
+
+                let remaining_pixels = pixels % chunk_size;
+                if remaining_pixels > 0 {
+                    enigo
+                        .move_mouse(remaining_pixels, 0, Coordinate::Rel)
+                        .unwrap();
+                }
+
+                do_360_pixel_status_sender.send(false).unwrap();
             }
         });
     }

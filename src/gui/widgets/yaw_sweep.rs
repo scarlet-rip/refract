@@ -29,23 +29,15 @@ struct YawSweepState {
     sweep_execution_status_receiver: Arc<Mutex<Receiver<bool>>>,
     sweep_distance_measurement_receiver: Arc<Mutex<Receiver<i32>>>,
     sweep_execution_distance_sender: Arc<Mutex<Sender<u32>>>,
-}
 
-impl WidgetState for YawSweepState {}
-
-pub(crate) struct YawSweep {
     measurement_status: bool,
     measured_sweep_distance: i32,
-    measurement_status_receiver: Receiver<bool>,
 
     sweep_execution_distance_buffer: String,
     sweep_execution_status: bool,
-    sweep_execution_status_receiver: Receiver<bool>,
-    sweep_distance_measurement_receiver: Receiver<i32>,
-    sweep_execution_distance_sender: Sender<u32>,
 }
 
-impl Default for YawSweep {
+impl Default for YawSweepState {
     fn default() -> Self {
         let (
             measurement_status_receiver,
@@ -54,33 +46,54 @@ impl Default for YawSweep {
             sweep_execution_status_receiver,
         ) = start();
 
-        Self {
+        YawSweepState {
+            measurement_status_receiver: Arc::new(Mutex::new(measurement_status_receiver)),
+            sweep_distance_measurement_receiver: Arc::new(Mutex::new(
+                sweep_distance_measurement_receiver,
+            )),
+            sweep_execution_distance_sender: Arc::new(Mutex::new(sweep_execution_distance_sender)),
+            sweep_execution_status_receiver: Arc::new(Mutex::new(sweep_execution_status_receiver)),
+
             measurement_status: false,
             measured_sweep_distance: 0,
-            measurement_status_receiver,
 
             sweep_execution_distance_buffer: String::default(),
             sweep_execution_status: false,
-            sweep_execution_status_receiver,
-            sweep_distance_measurement_receiver,
-            sweep_execution_distance_sender,
         }
     }
 }
 
+impl WidgetState for YawSweepState {}
+
+#[derive(Default)]
+pub(crate) struct YawSweep {}
+
 impl Widget for YawSweep {
-    fn ui(mut self, ui: &mut Ui) -> Response {
-        if let Ok(measurement_status) = self.measurement_status_receiver.try_recv() {
-            self.measurement_status = measurement_status;
+    fn ui(self, ui: &mut Ui) -> Response {
+        let mut state = YawSweepState::load_or_default(ui, "");
+
+        let (
+            measurement_status_receiver,
+            sweep_distance_measurement_receiver,
+            sweep_execution_distance_sender,
+            sweep_execution_status_receiver,
+        ) = (
+            state.measurement_status_receiver.lock().unwrap(),
+            state.sweep_distance_measurement_receiver.lock().unwrap(),
+            state.sweep_execution_distance_sender.lock().unwrap(),
+            state.sweep_execution_status_receiver.lock().unwrap(),
+        );
+
+        if let Ok(measurement_status) = measurement_status_receiver.try_recv() {
+            state.measurement_status = measurement_status;
         }
 
-        if let Ok(sweep_execution_status) = self.sweep_execution_status_receiver.try_recv() {
-            self.sweep_execution_status = sweep_execution_status;
+        if let Ok(sweep_execution_status) = sweep_execution_status_receiver.try_recv() {
+            state.sweep_execution_status = sweep_execution_status;
         }
 
-        if let Ok(sweep_distance_measurement) = self.sweep_distance_measurement_receiver.try_recv()
-        {
-            self.measured_sweep_distance = sweep_distance_measurement;
+        if let Ok(sweep_distance_measurement) = sweep_distance_measurement_receiver.try_recv() {
+            state.measured_sweep_distance = sweep_distance_measurement;
         }
 
         ui.with_layout(Layout::top_down(Align::Center), |ui| {
@@ -101,7 +114,7 @@ impl Widget for YawSweep {
 
                         ui.label(format!(
                             "Measured distance: {} px",
-                            self.measured_sweep_distance
+                            state.measured_sweep_distance
                         ));
 
                         ui.columns(2, |cols| {
@@ -112,7 +125,7 @@ impl Widget for YawSweep {
                             });
 
                             cols[1].add(
-                                StatusLabel::builder(self.measurement_status)
+                                StatusLabel::builder(state.measurement_status)
                                     .size(INFO_LABEL_SIZE)
                                     .build(),
                             );
@@ -143,21 +156,21 @@ impl Widget for YawSweep {
 
                             ui.with_layout(Layout::top_down(Align::Center), |ui| {
                                 let do_360_pixels_text_edit = ui.add(TextEdit::singleline(
-                                    &mut self.sweep_execution_distance_buffer,
+                                    &mut state.sweep_execution_distance_buffer,
                                 ));
 
                                 if do_360_pixels_text_edit.changed() {
                                     if let Ok(do_360_pixels) =
-                                        self.sweep_execution_distance_buffer.parse::<u32>()
+                                        state.sweep_execution_distance_buffer.parse::<u32>()
                                     {
-                                        self.sweep_execution_distance_sender
+                                        sweep_execution_distance_sender
                                             .send(do_360_pixels)
                                             .unwrap();
                                     }
                                 }
 
                                 ui.add(
-                                    StatusLabel::builder(self.sweep_execution_status)
+                                    StatusLabel::builder(state.sweep_execution_status)
                                         .size(INFO_LABEL_SIZE)
                                         .build(),
                                 );
@@ -167,6 +180,8 @@ impl Widget for YawSweep {
                 });
             });
         });
+
+        state.clone().save_state(ui, "");
 
         ui.separator()
     }
