@@ -1,3 +1,4 @@
+use super::NumericInput;
 use egui::{Align, Color32, Layout, RichText, TextEdit, Ui};
 use lazy_static::lazy_static;
 use scarlet_frame::egui::Group;
@@ -15,14 +16,29 @@ lazy_static! {
 
 #[derive(Default)]
 pub(crate) struct SensitivityConversion {
-    original_in_game_sensitivity: String,
-    original_pixel_360: String,
-    target_pixel_360: String,
-    converted_sensitivity: String,
+    original_sens: f64,
+    original_sweep: u16,
+    target_sweep: u16,
+    converted_sens: String,
+}
+
+fn convert_sensitivity(
+    original_in_game_sensitivity: f64,
+    original_pixels_per_360: u16,
+    target_pixels_per_360: u16,
+) -> f64 {
+    let d360_difference = target_pixels_per_360 as f64 / original_pixels_per_360 as f64;
+
+    original_in_game_sensitivity * d360_difference
 }
 
 impl SensitivityConversion {
     pub(crate) fn show(&mut self, ui: &mut Ui) {
+        // TODO: Only convert the sensitivity if the inputs change
+        self.converted_sens =
+            convert_sensitivity(self.original_sens, self.original_sweep, self.target_sweep)
+                .to_string();
+
         Group::new("sensitivity-conversion", "9slice-test.png").show(ui, |ui| {
             ui.with_layout(Layout::top_down(Align::Center), |ui| {
                 ui.label(
@@ -60,14 +76,15 @@ impl SensitivityConversion {
                                 cols[1].with_layout(Layout::right_to_left(Align::Min), |ui| {
                                     ui.with_layout(Layout::top_down(Align::LEFT), |ui| {
                                         ui.add(
-                                            TextEdit::singleline(
-                                                &mut self.original_in_game_sensitivity,
+                                            NumericInput::new(
+                                                "original-sens",
+                                                &mut self.original_sens,
                                             )
                                             .desired_width(ui.available_width() / 1.4),
                                         );
 
                                         ui.add(
-                                            TextEdit::singleline(&mut self.converted_sensitivity)
+                                            TextEdit::singleline(&mut self.converted_sens)
                                                 .desired_width(ui.available_width() / 1.4)
                                                 .interactive(false)
                                                 .frame(false)
@@ -107,8 +124,15 @@ impl SensitivityConversion {
 
                                 cols[1].with_layout(Layout::left_to_right(Align::Min), |ui| {
                                     ui.with_layout(Layout::top_down(Align::LEFT), |ui| {
-                                        ui.add(TextEdit::singleline(&mut self.target_pixel_360));
-                                        ui.add(TextEdit::singleline(&mut self.original_pixel_360));
+                                        ui.add(NumericInput::new(
+                                            "target-sweep",
+                                            &mut self.target_sweep,
+                                        ));
+
+                                        ui.add(NumericInput::new(
+                                            "original-sweep",
+                                            &mut self.original_sweep,
+                                        ));
                                     });
                                 });
                             });

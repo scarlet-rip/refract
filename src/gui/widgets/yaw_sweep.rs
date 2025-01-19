@@ -1,6 +1,7 @@
+use super::NumericInput;
 use super::{KeybindActionLabel, StatusLabel, WidgetState};
 use crate::start;
-use egui::{Align, Color32, Layout, Response, RichText, TextEdit, Ui, Widget};
+use egui::{Align, Color32, Layout, Response, RichText, Ui, Widget};
 use lazy_static::lazy_static;
 use scarlet_frame::egui::Group;
 use std::sync::mpsc::{Receiver, Sender};
@@ -34,7 +35,7 @@ struct YawSweepState {
     measurement_status: bool,
     measured_sweep_distance: i32,
 
-    sweep_execution_distance_buffer: String,
+    sweep_execution_distance: u32,
     sweep_execution_status: bool,
 }
 
@@ -56,9 +57,9 @@ impl Default for YawSweepState {
             sweep_execution_status_receiver: Arc::new(Mutex::new(sweep_execution_status_receiver)),
 
             measurement_status: false,
-            measured_sweep_distance: 0,
+            measured_sweep_distance: i32::default(),
 
-            sweep_execution_distance_buffer: String::default(),
+            sweep_execution_distance: u32::default(),
             sweep_execution_status: false,
         }
     }
@@ -161,18 +162,15 @@ impl Widget for YawSweep {
                                 });
 
                                 ui.with_layout(Layout::top_down(Align::Center), |ui| {
-                                    let do_360_pixels_text_edit = ui.add(TextEdit::singleline(
-                                        &mut state.sweep_execution_distance_buffer,
+                                    let do_360_pixels_text_edit = ui.add(NumericInput::new(
+                                        "sweep-execution-distance",
+                                        &mut state.sweep_execution_distance,
                                     ));
 
                                     if do_360_pixels_text_edit.changed() {
-                                        if let Ok(do_360_pixels) =
-                                            state.sweep_execution_distance_buffer.parse::<u32>()
-                                        {
-                                            sweep_execution_distance_sender
-                                                .send(do_360_pixels)
-                                                .unwrap();
-                                        }
+                                        sweep_execution_distance_sender
+                                            .send(state.sweep_execution_distance)
+                                            .unwrap();
                                     }
 
                                     ui.add(

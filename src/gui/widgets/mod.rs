@@ -16,6 +16,9 @@ pub(crate) use status_label::StatusLabel;
 mod keybind_action_label;
 pub(crate) use keybind_action_label::KeybindActionLabel;
 
+mod numeric_input;
+pub(crate) use numeric_input::NumericInput;
+
 use egui::{Id, Ui};
 use std::marker::{Send, Sync};
 
