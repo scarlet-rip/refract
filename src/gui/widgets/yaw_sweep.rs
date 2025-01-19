@@ -3,7 +3,7 @@ use super::{KeybindActionLabel, StatusLabel, WidgetState};
 use crate::start;
 use egui::{Align, Color32, Layout, Response, RichText, Ui, Widget};
 use lazy_static::lazy_static;
-use scarlet_frame::egui::Group;
+use scarlet_egui::frame::Frame;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex};
 
@@ -14,7 +14,8 @@ const PARTITION_INNER_LABEL_SIZE: f32 = 12.5;
 const INFO_LABEL_SIZE: f32 = 9.0;
 
 lazy_static! {
-    static ref GROUP_HEADER_SIZE_COLOR: Color32 =
+    static ref FRAME_TINT: Color32 = Color32::from_hex("#3a3737").expect("Invalid HEX");
+    static ref GROUP_HEADER_COLOR: Color32 =
         Color32::from_hex("#6b0707").expect("Invalid HEX");
     static ref PARTITION_HEADER_COLOR: Color32 = Color32::from_hex("#6b0707").expect("Invalid HEX");
     static ref KEYBIND_HIGHLIGHT_COLOR: Color32 =
@@ -72,7 +73,7 @@ pub(crate) struct YawSweep {}
 
 impl Widget for YawSweep {
     fn ui(self, ui: &mut Ui) -> Response {
-        Group::new("yaw-sweep-group", "9slice-test.png").show(ui, |ui| {
+        Frame::new("assets/nine_slice.png").tint(*FRAME_TINT).show(ui, |ui| {
             let mut state = YawSweepState::load_or_default(ui, "");
 
             let (
@@ -103,7 +104,7 @@ impl Widget for YawSweep {
                 ui.label(
                     RichText::new("Yaw Sweep")
                         .size(GROUP_HEADER_SIZE)
-                        .color(*GROUP_HEADER_SIZE_COLOR),
+                        .color(*GROUP_HEADER_COLOR),
                 );
 
                 ui.columns(2, |cols| {

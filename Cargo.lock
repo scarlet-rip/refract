@@ -2102,7 +2102,7 @@ dependencies = [
  "enigo",
  "evdev",
  "lazy_static",
- "scarlet-frame",
+ "scarlet-egui",
  "tracing",
  "tracing-subscriber",
 ]
@@ -2407,7 +2407,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "scarlet-frame"
+name = "scarlet-egui"
 version = "0.0.0"
 dependencies = [
  "egui",
