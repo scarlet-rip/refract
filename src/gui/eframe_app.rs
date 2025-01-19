@@ -3,7 +3,7 @@ use eframe::Frame;
 use eframe::NativeOptions;
 use egui::{Context, Vec2, ViewportBuilder, WindowLevel};
 
-const PINNED_WINDOW_SIZE: Vec2 = Vec2::new(450.0, 350.0);
+const PINNED_WINDOW_SIZE: Vec2 = Vec2::new(450.0, 250.0);
 const APP_ID: &str = "rip.scarlet.pixelgauge";
 const WINDOW_TITLE: &str = "Pixel Gauge";
 

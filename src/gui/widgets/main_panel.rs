@@ -1,4 +1,4 @@
-use super::{MainHeader, SensitivityConversionDemo, YawSweep};
+use super::{MainHeader, SensitivityConversion, YawSweep};
 use egui::{CentralPanel, Context};
 
 const PROJECT_ID: &str = "GK-C-001";
@@ -7,7 +7,7 @@ const ASSIGNED_ENTITY: &str = "GK | Creators";
 
 #[derive(Default)]
 pub(crate) struct MainPanel {
-    sensitivity_conversion_demo: SensitivityConversionDemo,
+    sensitivity_conversion: SensitivityConversion,
 }
 
 impl MainPanel {
@@ -23,7 +23,7 @@ impl MainPanel {
 
             ui.add(YawSweep::default());
 
-            self.sensitivity_conversion_demo.show(ui);
+            self.sensitivity_conversion.show(ui);
         });
     }
 }

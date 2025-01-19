@@ -7,8 +7,8 @@ pub(super) use main_panel::MainPanel;
 mod yaw_sweep;
 pub(crate) use yaw_sweep::YawSweep;
 
-mod sensitivity_conversion_demo;
-pub(crate) use sensitivity_conversion_demo::SensitivityConversionDemo;
+mod sensitivity_conversion;
+pub(crate) use sensitivity_conversion::SensitivityConversion;
 
 mod status_label;
 pub(crate) use status_label::StatusLabel;
