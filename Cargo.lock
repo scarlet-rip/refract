@@ -2409,6 +2409,7 @@ dependencies = [
 [[package]]
 name = "scarlet-egui"
 version = "0.0.0"
+source = "git+https://github.com/scarlet-rip/scarlet-egui.git?rev=0f859a297b69716f76f10d254d8efda9f1abaa31#0f859a297b69716f76f10d254d8efda9f1abaa31"
 dependencies = [
  "egui",
  "image",

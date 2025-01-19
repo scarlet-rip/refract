@@ -11,7 +11,8 @@ tracing = { version = "0.1.41", default-features = false, features = [ "std" ] }
 # Egui
 egui = { version = "0.30.0", default-features = false, features = [ "default_fonts" ] }
 eframe = { version = "0.30.0", default-features = false, features = [ "wayland", "glow" ] }
-scarlet-egui = { path = "./scarlet-egui", default-features = false, features = [ "frame" ]}
+scarlet-egui = { git = "https://github.com/scarlet-rip/scarlet-egui.git", rev = "0f859a297b69716f76f10d254d8efda9f1abaa31", default-features = false, features = [ "frame" ]}
+#scarlet-egui = { path = "../scarlet-egui", default-features = false, features = [ "frame" ]}
 
 # Input
 enigo = { version = "0.3.0", default-features = false, features = [ "xdo", "wayland" ] }
