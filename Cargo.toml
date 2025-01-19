@@ -4,42 +4,19 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
+# Tracing
+tracing-subscriber = { version = "0.3.19", default-features = false, features = [ "std", "fmt", "ansi" ] }
+tracing = { version = "0.1.41", default-features = false, features = [ "std" ] }
+
+# Egui
+egui = { version = "0.30.0", default-features = false, features = [ "default_fonts" ] }
+eframe = { version = "0.30.0", default-features = false, features = [ "wayland", "glow" ] }
 scarlet-frame = { path = "./scarlet-frame" }
 
-[dependencies.tracing-subscriber]
-version = "0.3.19"
-default-features = false
-features = [ "std", "fmt", "ansi" ]
+# Input
+enigo = { version = "0.3.0", default-features = false, features = [ "xdo", "wayland" ] }
+evdev = { version = "0.12.2", default-features = false }
 
-[dependencies.tracing]
-version = "0.1.41"
-default-features = false
-features = [ "std" ]
-
-[dependencies.egui]
-version = "0.30.0"
-default-features = false
-features = [ "default_fonts" ]
-
-[dependencies.eframe]
-version = "0.30.0"
-default-features = false
-features = [ "wayland", "glow" ]
-
-[dependencies.enigo]
-version = "0.3.0"
-default-features = false
-features = [ "xdo", "wayland" ]
-
-[dependencies.bon]
-version = "3.3.0"
-default-features = false
-features = [ "std" ]
-
-[dependencies.evdev]
-version = "0.12.2"
-default-features = false
-
-[dependencies.lazy_static]
-version = "1.5.0"
-default-features = false
+# Utilities
+bon = { version = "3.3.0", default-features = false, features = [ "std" ] }
+lazy_static = { version = "1.5.0", default-features = false }
