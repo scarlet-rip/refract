@@ -58,9 +58,9 @@ impl<N: Num> Widget for NumericInput<'_, N> {
 
         if text_edit.changed() {
             if state.text_buffer.is_empty() {
-                 state.is_text_buffer_valid = true;
+                state.is_text_buffer_valid = true;
 
-                return text_edit
+                return text_edit;
             };
 
             let parsed_possible_text = state.text_buffer.as_str().parse::<N>();
