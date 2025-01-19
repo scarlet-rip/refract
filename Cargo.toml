@@ -3,6 +3,9 @@ name = "pixel-gauge"
 version = "0.0.0"
 edition = "2021"
 
+[dependencies]
+scarlet-frame = { path = "./scarlet-frame" }
+
 [dependencies.tracing-subscriber]
 version = "0.3.19"
 default-features = false

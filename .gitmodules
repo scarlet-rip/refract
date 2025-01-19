@@ -1,0 +1,3 @@
+[submodule "scarlet-frame"]
+	path = scarlet-frame
+	url = git@github.com:Scarlet-SC/scarlet-frame.git
