@@ -73,6 +73,7 @@ pub(crate) struct YawSweep {}
 impl Widget for YawSweep {
     fn ui(self, ui: &mut Ui) -> Response {
         Frame::new("assets/nine_slice.png")
+            .id_salt("yaw-sweep-frame")
             .tint(*FRAME_TINT)
             .show(ui, |ui| {
                 let mut state = YawSweepState::load_or_default(ui, "");

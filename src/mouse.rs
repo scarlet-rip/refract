@@ -43,7 +43,7 @@ fn mouse_tracker_updater(mouse_tracker_mutex: &Arc<Mutex<MouseTracker>>) {
         let mouse_tracker = Arc::clone(mouse_tracker_mutex);
 
         move || {
-            let mouse_device_path = "/dev/input/event28";
+            let mouse_device_path = "/dev/input/event0";
             let mut mouse_device = Device::open(mouse_device_path).unwrap();
 
             while let Ok(events) = mouse_device.fetch_events() {

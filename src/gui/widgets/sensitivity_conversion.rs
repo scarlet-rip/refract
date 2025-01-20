@@ -40,6 +40,7 @@ impl SensitivityConversion {
                 .to_string();
 
         Frame::new("assets/nine_slice.png")
+            .id_salt("sensitivity-conversion-frame")
             .tint(*FRAME_TINT)
             .show(ui, |ui| {
                 ui.with_layout(Layout::top_down(Align::Center), |ui| {
