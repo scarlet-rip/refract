@@ -1,7 +1,10 @@
 use super::NumericInput;
-use egui::{Align, Color32, Layout, RichText, TextEdit, Ui};
+use egui::{
+    load::TexturePoll, Align, Color32, Layout, Margin, RichText, SizeHint, TextEdit, TextureFilter,
+    TextureOptions, Ui,
+};
 use lazy_static::lazy_static;
-use scarlet_egui::frame::Frame;
+use scarlet_egui::frame::{Frame, FrameDecoration, FrameDecorationNineSlice};
 
 const GROUP_HEADER_SIZE: f32 = 14.0;
 const PARTITION_HEADER_SIZE: f32 = 14.0;
@@ -39,9 +42,30 @@ impl SensitivityConversion {
             convert_sensitivity(self.original_sens, self.original_sweep, self.target_sweep)
                 .to_string();
 
-        Frame::new("assets/nine_slice.png")
-            .id_salt("sensitivity-conversion-frame")
-            .tint(*FRAME_TINT)
+        let texture = ui
+            .ctx()
+            .try_load_texture(
+                "file://assets/nine_slice.png",
+                TextureOptions {
+                    magnification: TextureFilter::Nearest,
+                    minification: TextureFilter::Nearest,
+
+                    ..Default::default()
+                },
+                SizeHint::Size(48, 48),
+            )
+            .unwrap();
+
+        if let TexturePoll::Ready { texture } = texture {
+            Frame::new(
+                "sensitivity-conversion-frame",
+                FrameDecoration::NineSlice(FrameDecorationNineSlice {
+                    texture,
+                    tint: Some(*FRAME_TINT),
+                }),
+                Margin::default(),
+                Margin::default(),
+            )
             .show(ui, |ui| {
                 ui.with_layout(Layout::top_down(Align::Center), |ui| {
                     ui.label(
@@ -144,5 +168,6 @@ impl SensitivityConversion {
                     });
                 });
             });
+        }
     }
 }

@@ -1,9 +1,12 @@
 use super::NumericInput;
 use super::{KeybindActionLabel, StatusLabel, WidgetState};
 use crate::start;
-use egui::{Align, Color32, Layout, Response, RichText, Ui, Widget};
+use egui::{
+    load::TexturePoll, Align, Color32, Layout, Margin, Response, RichText, SizeHint, TextureFilter,
+    TextureOptions, Ui, Widget,
+};
 use lazy_static::lazy_static;
-use scarlet_egui::frame::Frame;
+use scarlet_egui::frame::{Frame, FrameDecoration, FrameDecorationNineSlice};
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex};
 
@@ -72,9 +75,30 @@ pub(crate) struct YawSweep {}
 
 impl Widget for YawSweep {
     fn ui(self, ui: &mut Ui) -> Response {
-        Frame::new("assets/nine_slice.png")
-            .id_salt("yaw-sweep-frame")
-            .tint(*FRAME_TINT)
+        let texture = ui
+            .ctx()
+            .try_load_texture(
+                "file://assets/nine_slice.png",
+                TextureOptions {
+                    magnification: TextureFilter::Nearest,
+                    minification: TextureFilter::Nearest,
+
+                    ..Default::default()
+                },
+                SizeHint::Size(48, 48),
+            )
+            .unwrap();
+
+        match texture {
+            TexturePoll::Ready { texture } => Frame::new(
+                "yaw-sweep-frame",
+                FrameDecoration::NineSlice(FrameDecorationNineSlice {
+                    texture,
+                    tint: Some(*FRAME_TINT),
+                }),
+                Margin::default(),
+                Margin::default(),
+            )
             .show(ui, |ui| {
                 let mut state = YawSweepState::load_or_default(ui, "");
 
@@ -191,6 +215,8 @@ impl Widget for YawSweep {
                 });
 
                 state.clone().save_state(ui, "");
-            })
+            }),
+            _ => ui.response(),
+        }
     }
 }

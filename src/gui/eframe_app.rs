@@ -14,6 +14,8 @@ struct EframeApp {
 
 impl eframe::App for EframeApp {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
+        egui_extras::install_image_loaders(ctx);
+
         self.main_panel.show(ctx);
     }
 }
