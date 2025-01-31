@@ -1,9 +1,9 @@
 use super::{MainHeader, SensitivityConversion, YawSweep};
 use egui::{CentralPanel, Context};
 
-const PROJECT_ID: &str = "GK-C-001";
-const PROJECT_CODENAME: &str = "Pixel Gauge";
-const ASSIGNED_ENTITY: &str = "GK | Creators";
+const PROJECT_ID: &str = "SC-001";
+const PROJECT_CODENAME: &str = "Refract";
+const ASSIGNED_ENTITY: &str = "Scarlet R.I.P.";
 
 #[derive(Default)]
 pub(crate) struct MainPanel {
