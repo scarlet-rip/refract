@@ -124,7 +124,6 @@ impl SensitivityConversion {
                                                     .interactive(false)
                                                     .frame(false)
                                                     .text_color(*HIGHLIGHT_COLOR)
-                                                    .horizontal_align(Align::Center)
                                                     .clip_text(true),
                                             );
                                         });
