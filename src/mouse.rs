@@ -127,12 +127,15 @@ pub fn start(
         use std::time::Duration;
 
         let shared_do_360_pixel_amount = Arc::clone(&do_360_pixel_amount);
+        let ui_context_clone = ui_context.clone();
 
         thread::spawn(move || {
             let mut enigo = Enigo::new(&Settings::default()).unwrap();
 
             while do_360_receiver.recv().is_ok() {
                 do_360_pixel_status_sender.send(true).unwrap();
+
+                ui_context_clone.request_repaint();
 
                 let pixels = *shared_do_360_pixel_amount.lock().unwrap() as i32;
                 let chunk_size = 10;
@@ -151,6 +154,8 @@ pub fn start(
                 }
 
                 do_360_pixel_status_sender.send(false).unwrap();
+
+                ui_context_clone.request_repaint();
             }
         });
     }
@@ -159,7 +164,6 @@ pub fn start(
 
     let (total_movement_sender, total_movement_receiver) = mpsc::channel::<i32>();
     let (tracking_status_sender, tracking_status_receiver) = mpsc::channel::<bool>();
-    let ui_context_clone = ui_context.clone();
 
     thread::spawn(move || {
         while start_tracking_receiver.recv().is_ok() {
@@ -168,19 +172,11 @@ pub fn start(
             if mouse_tracker.is_tracking() {
                 tracking_status_sender.send(false).unwrap();
 
-                ui_context_clone.request_repaint();
-
-                println!("requested repaint false");
-
                 let total_yaw_movement = mouse_tracker.stop_tracking();
 
                 total_movement_sender.send(total_yaw_movement).unwrap();
             } else {
                 tracking_status_sender.send(true).unwrap();
-
-                ui_context_clone.request_repaint();
-
-                println!("requested repaint true");
 
                 mouse_tracker.start_tracking();
             }
