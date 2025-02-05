@@ -1,10 +1,12 @@
-use super::NumericInput;
 use egui::{
     load::TexturePoll, Align, Color32, Layout, Margin, RichText, SizeHint, TextEdit, TextureFilter,
     TextureOptions, Ui,
 };
 use lazy_static::lazy_static;
-use scarlet_egui::frame::{Frame, FrameDecoration, FrameDecorationNineSlice};
+use scarlet_egui::{
+    frame::{Frame, FrameDecoration, FrameDecorationNineSlice},
+    input_field::NumericInput,
+};
 
 const GROUP_HEADER_SIZE: f32 = 14.0;
 const PARTITION_HEADER_SIZE: f32 = 14.0;
@@ -37,11 +39,6 @@ fn convert_sensitivity(
 
 impl SensitivityConversion {
     pub(crate) fn show(&mut self, ui: &mut Ui) {
-        // TODO: Only convert the sensitivity if the inputs change
-        self.converted_sens =
-            convert_sensitivity(self.original_sens, self.original_sweep, self.target_sweep)
-                .to_string();
-
         let texture = ui
             .ctx()
             .try_load_texture(
@@ -102,21 +99,33 @@ impl SensitivityConversion {
 
                                     cols[1].with_layout(Layout::right_to_left(Align::Min), |ui| {
                                         ui.with_layout(Layout::top_down(Align::LEFT), |ui| {
-                                            ui.add(
+                                            let original_sens_input_field_response =
                                                 NumericInput::new(
                                                     "original-sens",
                                                     &mut self.original_sens,
                                                 )
-                                                .desired_width(ui.available_width() / 1.4),
-                                            );
+                                                .desired_width(ui.available_width() / 1.4)
+                                                .show(ui);
+
+                                            if original_sens_input_field_response.response.changed()
+                                                && original_sens_input_field_response
+                                                    .is_text_buffer_valid
+                                            {
+                                                self.converted_sens = convert_sensitivity(
+                                                    self.original_sens,
+                                                    self.original_sweep,
+                                                    self.target_sweep,
+                                                )
+                                                .to_string();
+                                            }
 
                                             ui.add(
                                                 TextEdit::singleline(&mut self.converted_sens)
-                                                    .desired_width(ui.available_width() / 1.4)
                                                     .interactive(false)
                                                     .frame(false)
                                                     .text_color(*HIGHLIGHT_COLOR)
-                                                    .horizontal_align(Align::Center),
+                                                    .horizontal_align(Align::Center)
+                                                    .clip_text(true),
                                             );
                                         });
                                     });
@@ -151,15 +160,47 @@ impl SensitivityConversion {
 
                                     cols[1].with_layout(Layout::left_to_right(Align::Min), |ui| {
                                         ui.with_layout(Layout::top_down(Align::LEFT), |ui| {
-                                            ui.add(NumericInput::new(
-                                                "target-sweep",
-                                                &mut self.target_sweep,
-                                            ));
+                                            let target_sweep_input_field_response =
+                                                NumericInput::new(
+                                                    "target-sweep",
+                                                    &mut self.target_sweep,
+                                                )
+                                                .desired_width(ui.available_width() / 1.4)
+                                                .show(ui);
 
-                                            ui.add(NumericInput::new(
-                                                "original-sweep",
-                                                &mut self.original_sweep,
-                                            ));
+                                            if target_sweep_input_field_response.response.changed()
+                                                && target_sweep_input_field_response
+                                                    .is_text_buffer_valid
+                                            {
+                                                self.converted_sens = convert_sensitivity(
+                                                    self.original_sens,
+                                                    self.original_sweep,
+                                                    self.target_sweep,
+                                                )
+                                                .to_string();
+                                            }
+
+                                            let original_sweep_input_field_response =
+                                                NumericInput::new(
+                                                    "original-sweep",
+                                                    &mut self.original_sweep,
+                                                )
+                                                .desired_width(ui.available_width() / 1.4)
+                                                .show(ui);
+
+                                            if original_sweep_input_field_response
+                                                .response
+                                                .changed()
+                                                && original_sweep_input_field_response
+                                                    .is_text_buffer_valid
+                                            {
+                                                self.converted_sens = convert_sensitivity(
+                                                    self.original_sens,
+                                                    self.original_sweep,
+                                                    self.target_sweep,
+                                                )
+                                                .to_string();
+                                            }
                                         });
                                     });
                                 });

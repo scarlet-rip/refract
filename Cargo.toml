@@ -13,8 +13,8 @@ egui = { version = "0.30.0", default-features = false, features = [ "default_fon
 egui_extras = { version = "0.30.0", features = ["all_loaders"] }
 image = { version = "0.25", features = ["png"] }
 eframe = { version = "0.30.0", default-features = false, features = [ "wayland", "glow" ] }
-#scarlet-egui = { git = "https://github.com/scarlet-rip/scarlet-egui.git", rev = "0f859a297b69716f76f10d254d8efda9f1abaa31", default-features = false, features = [ "frame" ]}
-scarlet-egui = { path = "../scarlet-egui", default-features = false, features = [ "frame" ]}
+scarlet-egui = { git = "https://github.com/scarlet-rip/scarlet-egui.git", rev = "c20626580fc87ee43662663fd4893efd9c71d52c", default-features = false, features = [ "frame", "input_field", "widget_state" ]}
+#scarlet-egui = { path = "../scarlet-egui", default-features = false, features = [ "frame", "input_field", "widget_state" ]}
 
 # Input
 enigo = { version = "0.3.0", default-features = false, features = [ "xdo", "wayland" ] }

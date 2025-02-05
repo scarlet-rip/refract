@@ -1,12 +1,15 @@
-use super::NumericInput;
-use super::{KeybindActionLabel, StatusLabel, WidgetState};
+use super::{KeybindActionLabel, StatusLabel};
 use crate::start;
 use egui::{
     load::TexturePoll, Align, Color32, Layout, Margin, Response, RichText, SizeHint, TextureFilter,
     TextureOptions, Ui, Widget,
 };
 use lazy_static::lazy_static;
-use scarlet_egui::frame::{Frame, FrameDecoration, FrameDecorationNineSlice};
+use scarlet_egui::{
+    frame::{Frame, FrameDecoration, FrameDecorationNineSlice},
+    input_field::NumericInput,
+    widget_state::{WidgetState, WidgetStateType},
+};
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex};
 
@@ -42,32 +45,6 @@ struct YawSweepState {
     sweep_execution_status: bool,
 }
 
-impl Default for YawSweepState {
-    fn default() -> Self {
-        let (
-            measurement_status_receiver,
-            sweep_distance_measurement_receiver,
-            sweep_execution_distance_sender,
-            sweep_execution_status_receiver,
-        ) = start();
-
-        YawSweepState {
-            measurement_status_receiver: Arc::new(Mutex::new(measurement_status_receiver)),
-            sweep_distance_measurement_receiver: Arc::new(Mutex::new(
-                sweep_distance_measurement_receiver,
-            )),
-            sweep_execution_distance_sender: Arc::new(Mutex::new(sweep_execution_distance_sender)),
-            sweep_execution_status_receiver: Arc::new(Mutex::new(sweep_execution_status_receiver)),
-
-            measurement_status: false,
-            measured_sweep_distance: i32::default(),
-
-            sweep_execution_distance: u32::default(),
-            sweep_execution_status: false,
-        }
-    }
-}
-
 impl WidgetState for YawSweepState {}
 
 #[derive(Default)]
@@ -100,7 +77,36 @@ impl Widget for YawSweep {
                 Margin::default(),
             )
             .show(ui, |ui| {
-                let mut state = YawSweepState::load_or_default(ui, "");
+                let mut state =
+                    YawSweepState::load_or_new(ui, None, WidgetStateType::Runtime, || {
+                        let (
+                            measurement_status_receiver,
+                            sweep_distance_measurement_receiver,
+                            sweep_execution_distance_sender,
+                            sweep_execution_status_receiver,
+                        ) = start(ui.ctx());
+
+                        YawSweepState {
+                            measurement_status_receiver: Arc::new(Mutex::new(
+                                measurement_status_receiver,
+                            )),
+                            sweep_distance_measurement_receiver: Arc::new(Mutex::new(
+                                sweep_distance_measurement_receiver,
+                            )),
+                            sweep_execution_distance_sender: Arc::new(Mutex::new(
+                                sweep_execution_distance_sender,
+                            )),
+                            sweep_execution_status_receiver: Arc::new(Mutex::new(
+                                sweep_execution_status_receiver,
+                            )),
+
+                            measurement_status: false,
+                            measured_sweep_distance: i32::default(),
+
+                            sweep_execution_distance: u32::default(),
+                            sweep_execution_status: false,
+                        }
+                    });
 
                 let (
                     measurement_status_receiver,
@@ -191,12 +197,16 @@ impl Widget for YawSweep {
                                     });
 
                                     ui.with_layout(Layout::top_down(Align::Center), |ui| {
-                                        let do_360_pixels_text_edit = ui.add(NumericInput::new(
+                                        let do_360_pixels_input_field_response = NumericInput::new(
                                             "sweep-execution-distance",
                                             &mut state.sweep_execution_distance,
-                                        ));
+                                        )
+                                        .show(ui);
 
-                                        if do_360_pixels_text_edit.changed() {
+                                        if do_360_pixels_input_field_response.response.changed()
+                                            && do_360_pixels_input_field_response
+                                                .is_text_buffer_valid
+                                        {
                                             sweep_execution_distance_sender
                                                 .send(state.sweep_execution_distance)
                                                 .unwrap();
@@ -214,7 +224,7 @@ impl Widget for YawSweep {
                     });
                 });
 
-                state.clone().save_state(ui, "");
+                state.clone().save_state(ui, None, WidgetStateType::Runtime);
             }),
             _ => ui.response(),
         }

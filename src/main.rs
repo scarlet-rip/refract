@@ -1,4 +1,4 @@
-use pixel_gauge::run_eframe;
+use refract_sc::run_eframe;
 use tracing::{subscriber, Level};
 use tracing_subscriber::FmtSubscriber;
 

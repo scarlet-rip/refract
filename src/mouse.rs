@@ -1,3 +1,4 @@
+use egui::Context;
 use evdev::{Device, InputEventKind, Key, RelativeAxisType};
 use std::{
     sync::{mpsc, Arc, Mutex},
@@ -94,7 +95,9 @@ fn input_handler() -> (mpsc::Receiver<()>, mpsc::Receiver<()>) {
     (start_tracking_key_receiver, do_360_receiver)
 }
 
-pub fn start() -> (
+pub fn start(
+    ui_context: &Context,
+) -> (
     mpsc::Receiver<bool>,
     mpsc::Receiver<i32>,
     mpsc::Sender<u32>,
@@ -156,6 +159,7 @@ pub fn start() -> (
 
     let (total_movement_sender, total_movement_receiver) = mpsc::channel::<i32>();
     let (tracking_status_sender, tracking_status_receiver) = mpsc::channel::<bool>();
+    let ui_context_clone = ui_context.clone();
 
     thread::spawn(move || {
         while start_tracking_receiver.recv().is_ok() {
@@ -164,11 +168,19 @@ pub fn start() -> (
             if mouse_tracker.is_tracking() {
                 tracking_status_sender.send(false).unwrap();
 
+                ui_context_clone.request_repaint();
+
+                println!("requested repaint false");
+
                 let total_yaw_movement = mouse_tracker.stop_tracking();
 
                 total_movement_sender.send(total_yaw_movement).unwrap();
             } else {
                 tracking_status_sender.send(true).unwrap();
+
+                ui_context_clone.request_repaint();
+
+                println!("requested repaint true");
 
                 mouse_tracker.start_tracking();
             }
