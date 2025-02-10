@@ -1,45 +1,14 @@
 use egui::Context;
-use evdev::{Device, InputEventKind, Key};
-use std::{
-    sync::{mpsc, Arc, Mutex},
-    thread,
+use enigo::{Coordinate, Enigo, Mouse, Settings};
+use evdev::Device;
+use std::sync::{mpsc, Arc, Mutex};
+use std::thread;
+use std::time::Duration;
+
+use super::{
+    input::{start_keybind_receivers, MouseTracker},
+    sweep::Sweeper,
 };
-
-fn input_handler() -> (mpsc::Receiver<()>, mpsc::Receiver<()>) {
-    let (start_tracking_key_sender, start_tracking_key_receiver) = mpsc::channel::<()>();
-    let (do_360_sender, do_360_receiver) = mpsc::channel::<()>();
-
-    thread::spawn(move || {
-        let keyboard_device_path = "/dev/input/event2";
-        let mut keyboard_device = Device::open(keyboard_device_path).unwrap();
-
-        let mut is_alt_down = false;
-
-        while let Ok(events) = keyboard_device.fetch_events() {
-            for event in events {
-                if let InputEventKind::Key(Key::KEY_LEFTALT) = event.kind() {
-                    is_alt_down = event.value() == 1;
-                }
-
-                if let InputEventKind::Key(Key::KEY_M) = event.kind() {
-                    if event.value() == 1 && is_alt_down {
-                        start_tracking_key_sender.send(()).unwrap();
-                    }
-                }
-
-                if let InputEventKind::Key(Key::KEY_X) = event.kind() {
-                    if event.value() == 1 && is_alt_down {
-                        do_360_sender.send(()).unwrap();
-                    }
-                }
-            }
-        }
-    });
-
-    (start_tracking_key_receiver, do_360_receiver)
-}
-
-use super::input::MouseTracker;
 
 pub fn start(
     ui_context: &Context,
@@ -49,8 +18,12 @@ pub fn start(
     mpsc::Sender<u32>,
     mpsc::Receiver<bool>,
 ) {
-    let mouse_tracker = Arc::new(Mutex::new(MouseTracker::new(Device::open("/dev/input/event0").unwrap())));
-    let (start_tracking_receiver, do_360_receiver) = input_handler();
+    let mouse_tracker = Arc::new(Mutex::new(MouseTracker::new(
+        Device::open("/dev/input/event0").unwrap(),
+    )));
+
+    let (start_tracking_receiver, do_360_receiver) =
+        start_keybind_receivers(Device::open("/dev/input/event2").unwrap());
 
     let (do_360_pixel_amount_sender, do_360_pixel_amount_receiver) = mpsc::channel::<u32>();
     let (do_360_pixel_status_sender, do_360_pixel_status_receiver) = mpsc::channel::<bool>();
@@ -68,39 +41,21 @@ pub fn start(
     }
 
     {
-        use enigo::{Coordinate, Enigo, Mouse, Settings};
-        use std::thread;
-        use std::time::Duration;
-
         let shared_do_360_pixel_amount = Arc::clone(&do_360_pixel_amount);
         let ui_context_clone = ui_context.clone();
 
         thread::spawn(move || {
-            let mut enigo = Enigo::new(&Settings::default()).unwrap();
+            let mut sweeper = Sweeper::default();
 
             while do_360_receiver.recv().is_ok() {
                 do_360_pixel_status_sender.send(true).unwrap();
-
                 ui_context_clone.request_repaint();
 
                 let pixels = *shared_do_360_pixel_amount.lock().unwrap() as i32;
-                let chunk_size = 10;
-                let delay = 5;
 
-                for _ in 0..(pixels / chunk_size) {
-                    enigo.move_mouse(chunk_size, 0, Coordinate::Rel).unwrap();
-                    thread::sleep(Duration::from_millis(delay));
-                }
-
-                let remaining_pixels = pixels % chunk_size;
-                if remaining_pixels > 0 {
-                    enigo
-                        .move_mouse(remaining_pixels, 0, Coordinate::Rel)
-                        .unwrap();
-                }
+                sweeper.perform_horizontal_sweep(pixels, 10, 5).unwrap();
 
                 do_360_pixel_status_sender.send(false).unwrap();
-
                 ui_context_clone.request_repaint();
             }
         });

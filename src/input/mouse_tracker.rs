@@ -3,10 +3,9 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
     sync::{mpsc, Arc, Mutex},
     thread,
-    time::Duration,
 };
 
-pub struct MouseTracker {
+pub(crate) struct MouseTracker {
     device: Arc<Mutex<Device>>,
     tracked_distance: Arc<Mutex<i32>>,
     tracking_active: Arc<AtomicBool>,
@@ -33,6 +32,7 @@ impl MouseTracker {
         }
 
         let (stop_signal_sender, stop_signal_receiver) = mpsc::channel();
+
         self.stop_signal_sender = Some(stop_signal_sender);
 
         let tracked_distance = Arc::clone(&self.tracked_distance);
@@ -54,8 +54,6 @@ impl MouseTracker {
                 if stop_signal_receiver.try_recv().is_ok() {
                     break;
                 }
-
-                thread::sleep(Duration::from_millis(10));
             }
         });
     }
