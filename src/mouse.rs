@@ -1,65 +1,108 @@
 use egui::Context;
-use enigo::{Coordinate, Enigo, Mouse, Settings};
-use evdev::Device;
+use evdev::{Device, Key, RelativeAxisType};
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
-use std::time::Duration;
+
+use once_cell::sync::Lazy;
+use std::sync::RwLock;
+
+pub(crate) static GLOBAL_YAW_SWEEP_PIXELS: Lazy<Arc<RwLock<i32>>> =
+    Lazy::new(|| Arc::new(RwLock::new(0)));
+pub(crate) static GLOBAL_YAW_SWEEP_STATUS: Lazy<Arc<RwLock<bool>>> =
+    Lazy::new(|| Arc::new(RwLock::new(false)));
 
 use super::{
     input::{start_keybind_receivers, MouseTracker},
     sweep::Sweeper,
 };
 
-pub fn start(
-    ui_context: &Context,
-) -> (
-    mpsc::Receiver<bool>,
-    mpsc::Receiver<i32>,
-    mpsc::Sender<u32>,
-    mpsc::Receiver<bool>,
-) {
+fn find_main_mouse() -> Option<String> {
+    let Ok(input_events) = std::fs::read_dir("/dev/input") else {
+        return None;
+    };
+
+    input_events
+        .filter_map(Result::ok)
+        .filter_map(|entry| entry.path().to_str().map(|s| s.to_string()))
+        .find_map(|path| {
+            if path.contains("event") {
+                if let Ok(device) = Device::open(path.as_str()) {
+                    if let Some(axes) = device.supported_relative_axes() {
+                        if axes.contains(RelativeAxisType::REL_X) {
+                            return Some(path);
+                        }
+                    }
+                }
+            }
+
+            None
+        })
+}
+
+fn find_main_keyboard() -> Option<String> {
+    let Ok(input_events) = std::fs::read_dir("/dev/input") else {
+        return None;
+    };
+
+    input_events
+        .filter_map(Result::ok)
+        .filter_map(|entry| entry.path().to_str().map(|s| s.to_string()))
+        .find_map(|path| {
+            if path.contains("event") {
+                if let Ok(device) = Device::open(path.as_str()) {
+                    if let Some(keys) = device.supported_keys() {
+                        if keys.contains(Key::KEY_LEFTALT) {
+                            return Some(path);
+                        }
+                    }
+                }
+            }
+
+            None
+        })
+}
+
+pub fn start(ui_context: Arc<Mutex<Context>>) -> (mpsc::Receiver<bool>, mpsc::Receiver<i32>) {
+    let main_mouse_path = find_main_mouse().unwrap();
+
     let mouse_tracker = Arc::new(Mutex::new(MouseTracker::new(
-        Device::open("/dev/input/event0").unwrap(),
+        Device::open(main_mouse_path).unwrap(),
     )));
 
+    let main_keyboard_path = find_main_keyboard().unwrap();
+
+    find_main_mouse().unwrap();
+
     let (start_tracking_receiver, do_360_receiver) =
-        start_keybind_receivers(Device::open("/dev/input/event2").unwrap());
+        start_keybind_receivers(Device::open(main_keyboard_path).unwrap());
 
-    let (do_360_pixel_amount_sender, do_360_pixel_amount_receiver) = mpsc::channel::<u32>();
-    let (do_360_pixel_status_sender, do_360_pixel_status_receiver) = mpsc::channel::<bool>();
+    let ui_context_clone = Arc::clone(&ui_context);
 
-    let do_360_pixel_amount = Arc::new(Mutex::new(0));
+    thread::spawn(move || {
+        while do_360_receiver.recv().is_ok() {
+            let mut status = GLOBAL_YAW_SWEEP_STATUS.write().unwrap();
 
-    {
-        let shared_do_360_pixel_amount = Arc::clone(&do_360_pixel_amount);
+            *status = true;
+            ui_context_clone.lock().unwrap().request_repaint();
 
-        thread::spawn(move || {
-            while let Ok(pixel_amount) = do_360_pixel_amount_receiver.recv() {
-                *shared_do_360_pixel_amount.lock().unwrap() = pixel_amount;
-            }
-        });
-    }
+            drop(status);
 
-    {
-        let shared_do_360_pixel_amount = Arc::clone(&do_360_pixel_amount);
-        let ui_context_clone = ui_context.clone();
+            let ui_context_clone_inner = Arc::clone(&ui_context);
 
-        thread::spawn(move || {
-            let mut sweeper = Sweeper::default();
+            thread::spawn(move || {
+                Sweeper::default()
+                    .perform_horizontal_sweep(*GLOBAL_YAW_SWEEP_PIXELS.read().unwrap(), 10, 5)
+                    .unwrap();
 
-            while do_360_receiver.recv().is_ok() {
-                do_360_pixel_status_sender.send(true).unwrap();
-                ui_context_clone.request_repaint();
+                let mut status = GLOBAL_YAW_SWEEP_STATUS.write().unwrap();
 
-                let pixels = *shared_do_360_pixel_amount.lock().unwrap() as i32;
-
-                sweeper.perform_horizontal_sweep(pixels, 10, 5).unwrap();
-
-                do_360_pixel_status_sender.send(false).unwrap();
-                ui_context_clone.request_repaint();
-            }
-        });
-    }
+                *status = false;
+                ui_context_clone_inner.lock().unwrap().request_repaint();
+            })
+            .join()
+            .unwrap();
+        }
+    });
 
     let (total_movement_sender, total_movement_receiver) = mpsc::channel::<i32>();
     let (tracking_status_sender, tracking_status_receiver) = mpsc::channel::<bool>();
@@ -82,10 +125,5 @@ pub fn start(
         }
     });
 
-    (
-        tracking_status_receiver,
-        total_movement_receiver,
-        do_360_pixel_amount_sender,
-        do_360_pixel_status_receiver,
-    )
+    (tracking_status_receiver, total_movement_receiver)
 }

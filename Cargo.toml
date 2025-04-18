@@ -23,3 +23,4 @@ evdev = { version = "0.12.2", default-features = false }
 # Utilities
 bon = { version = "3.3.0", default-features = false, features = [ "std" ] }
 lazy_static = { version = "1.5.0", default-features = false }
+once_cell = "1.20.3"
