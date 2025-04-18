@@ -130,7 +130,7 @@ impl Widget for YawSweep {
                                 ui.columns(2, |cols| {
                                     cols[0].with_layout(Layout::right_to_left(Align::Min), |ui| {
                                         ui.add(
-                                            KeybindActionLabel::builder("ALT + M", "to measure")
+                                            KeybindActionLabel::builder("ALT + [", "to measure")
                                                 .build(),
                                         );
                                     });
@@ -161,7 +161,7 @@ impl Widget for YawSweep {
 
                                         ui.add(
                                             KeybindActionLabel::builder(
-                                                "ALT + X",
+                                                "ALT + ]",
                                                 "to perform a sweep",
                                             )
                                             .build(),

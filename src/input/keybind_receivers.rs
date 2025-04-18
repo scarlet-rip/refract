@@ -17,13 +17,13 @@ pub(crate) fn start_keybind_receivers(
                     is_alt_down = event.value() == 1;
                 }
 
-                if let InputEventKind::Key(Key::KEY_M) = event.kind() {
+                if let InputEventKind::Key(Key::KEY_LEFTBRACE) = event.kind() {
                     if event.value() == 1 && is_alt_down {
                         start_tracking_key_sender.send(()).unwrap();
                     }
                 }
 
-                if let InputEventKind::Key(Key::KEY_X) = event.kind() {
+                if let InputEventKind::Key(Key::KEY_RIGHTBRACE) = event.kind() {
                     if event.value() == 1 && is_alt_down {
                         do_360_sender.send(()).unwrap();
                     }
