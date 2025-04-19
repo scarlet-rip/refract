@@ -29,14 +29,14 @@ pub(crate) fn start_keybind_receivers(
                     if keys_down.contains(&Key::KEY_LEFTALT)
                         && keys_down.contains(&Key::KEY_LEFTBRACE)
                     {
-                        let _ = start_tracking_key_sender.send(());
+                        start_tracking_key_sender.send(()).unwrap();
                     }
 
                     // Alt + ]
                     if keys_down.contains(&Key::KEY_LEFTALT)
                         && keys_down.contains(&Key::KEY_RIGHTBRACE)
                     {
-                        let _ = do_360_sender.send(());
+                        do_360_sender.send(()).unwrap();
                     }
                 }
             }
