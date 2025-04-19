@@ -3,3 +3,6 @@ pub(crate) use mouse_tracker::MouseTracker;
 
 mod keybind_receivers;
 pub(crate) use keybind_receivers::start_keybind_receivers;
+
+mod devices;
+pub(crate) use devices::Devices;

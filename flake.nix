@@ -12,8 +12,9 @@
         let
 		  enigoDeps = with pkgs; [ xdotool ];
 		  eframeDeps = with pkgs; [ libxkbcommon libGL wayland ];
+		  udevDeps = with pkgs; [ libudev-zero ];
 
-          runtimeDeps = enigoDeps ++ eframeDeps;
+          runtimeDeps = enigoDeps ++ eframeDeps ++ udevDeps;
           buildDeps = with pkgs; [ pkg-config ];
 
           cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
