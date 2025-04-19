@@ -1,5 +1,4 @@
 use egui::Context;
-use evdev::{Device, Key, RelativeAxisType};
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 
@@ -19,8 +18,7 @@ use super::{
 };
 
 pub fn start(ui_context: Arc<Mutex<Context>>) -> (mpsc::Receiver<bool>, mpsc::Receiver<i32>) {
-    let devices_mutex = Devices::new();
-    let devices = devices_mutex.try_lock().unwrap();
+    let devices = Devices::new();
 
     let main_mouse = devices.get_main_mouse().unwrap();
     let main_keyboard = devices.get_main_keyboard().unwrap();

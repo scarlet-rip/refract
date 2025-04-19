@@ -1,28 +1,18 @@
 use evdev::{Device, Key, RelativeAxisType};
-use std::sync::Arc;
-use tokio::sync::Mutex;
-use udev::MonitorBuilder;
 
 pub(crate) struct Devices {
     device_event_paths: Vec<String>,
 }
 
 impl Devices {
-    pub fn new() -> Arc<Mutex<Self>> {
+    pub fn new() -> Self {
         let mut devices = Self {
             device_event_paths: Vec::new(),
         };
 
         devices.update_device_event_paths();
 
-        let devices_mutex = Arc::new(Mutex::new(devices));
-        let devices_mutex_clone = devices_mutex.clone();
-
-        tokio::spawn(async move {
-            Devices::start_auto_update(devices_mutex_clone).await;
-        });
-
-        devices_mutex
+        devices
     }
 
     fn update_device_event_paths(&mut self) {
@@ -42,29 +32,6 @@ impl Devices {
             .collect();
 
         self.device_event_paths = input_event_paths;
-    }
-
-    async fn start_auto_update(devices: Arc<Mutex<Self>>) {
-        let monitor = MonitorBuilder::new()
-            .unwrap()
-            .match_subsystem("input")
-            .unwrap()
-            .listen()
-            .unwrap();
-
-        for event in monitor.iter() {
-            if let Some(action) = event.action() {
-                if action == "add" || action == "remove" {
-                    let devices_clone = devices.clone();
-
-                    tokio::spawn(async move {
-                        let mut locked = devices_clone.lock().await;
-
-                        locked.update_device_event_paths();
-                    });
-                }
-            }
-        }
     }
 
     pub fn get_main_keyboard(&self) -> Option<Device> {
