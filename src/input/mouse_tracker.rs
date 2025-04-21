@@ -28,7 +28,7 @@ impl MouseTracker {
 
     pub fn start(&mut self) {
         if self.tracking_active.swap(true, Ordering::Relaxed) {
-            return; // Prevent starting tracking if already active
+            return;
         }
 
         let (stop_signal_sender, stop_signal_receiver) = mpsc::channel();
@@ -60,7 +60,7 @@ impl MouseTracker {
 
     pub fn stop(&mut self) -> i32 {
         if !self.tracking_active.swap(false, Ordering::Relaxed) {
-            return 0; // Not actively tracking, return early
+            return 0;
         }
 
         if let Some(sender) = &self.stop_signal_sender {

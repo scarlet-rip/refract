@@ -1,4 +1,4 @@
-use refract_sc::backend_memory::test;
+use refract_sc::input_backend::shared_memory::test;
 
 #[tokio::main]
 async fn main() {

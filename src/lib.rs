@@ -6,6 +6,6 @@ mod input;
 mod mouse;
 pub use mouse::start;
 
-pub mod backend_memory;
-
 mod sweep;
+
+pub mod input_backend;
