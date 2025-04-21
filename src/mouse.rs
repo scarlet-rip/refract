@@ -25,8 +25,7 @@ pub fn start(ui_context: Arc<Mutex<Context>>) -> (mpsc::Receiver<bool>, mpsc::Re
 
     let mouse_tracker = Arc::new(Mutex::new(MouseTracker::new(main_mouse)));
 
-    let (start_tracking_receiver, do_360_receiver) =
-        start_keybind_receivers(main_keyboard);
+    let (start_tracking_receiver, do_360_receiver) = start_keybind_receivers(main_keyboard);
 
     let ui_context_clone = Arc::clone(&ui_context);
 
