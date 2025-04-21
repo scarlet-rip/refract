@@ -62,7 +62,7 @@ fn start_listener<F>(mut handler: F, cancellation_token: CancellationToken)
 where
     F: FnMut(&ArchivedRefractEvent) + Send + 'static,
 {
-    tokio::task::spawn(async move {
+    tokio::task::spawn_blocking(move || {
         let mut synchronizer = Synchronizer::new(&SHARED_MEMORY_FILE_PATH);
         let mut semaphore =
             NamedSemaphore::create(SEMAPHORE_NAME, 0).expect("Failed to create semaphore");
