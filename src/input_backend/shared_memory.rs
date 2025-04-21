@@ -86,13 +86,15 @@ impl SharedMemoryBackend {
 }
 
 pub async fn test() {
-    use super::combo::combo_watcher;
+    use super::{combo::combo_watcher, relative_mouse_movement::relative_mouse_movement_watcher};
     use crate::input::Devices;
 
     let devices = Devices::new();
     let main_keyboard = devices.get_main_keyboard().unwrap();
+    let main_mouse = devices.get_main_mouse().unwrap();
 
     combo_watcher(main_keyboard);
+    relative_mouse_movement_watcher(main_mouse);
 
     SharedMemoryFrontend::start_listener(|archived_refract_event| match archived_refract_event {
         ArchivedRefractEvent::Combo(combo) => match combo {
