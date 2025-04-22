@@ -1,4 +1,4 @@
-use refract_sc::input_backend::start;
+use refract_sc::input::start;
 
 #[tokio::main]
 async fn main() {

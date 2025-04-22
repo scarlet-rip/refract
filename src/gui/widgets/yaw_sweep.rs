@@ -11,8 +11,8 @@ use scarlet_egui::{
     input_field::NumericInput,
     widget_state::{WidgetState, WidgetStateType},
 };
-use std::sync::mpsc::Receiver;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use tokio::sync::{mpsc::Receiver, Mutex};
 
 const GROUP_HEADER_SIZE: f32 = 14.0;
 const PARTITION_HEADER_SIZE: f32 = 14.0;
@@ -91,9 +91,12 @@ impl Widget for YawSweep {
                         }
                     });
 
-                let (measurement_status_receiver, sweep_distance_measurement_receiver) = (
-                    state.measurement_status_receiver.lock().unwrap(),
-                    state.sweep_distance_measurement_receiver.lock().unwrap(),
+                let (mut measurement_status_receiver, mut sweep_distance_measurement_receiver) = (
+                    state.measurement_status_receiver.try_lock().unwrap(),
+                    state
+                        .sweep_distance_measurement_receiver
+                        .try_lock()
+                        .unwrap(),
                 );
 
                 if let Ok(measurement_status) = measurement_status_receiver.try_recv() {
@@ -169,15 +172,30 @@ impl Widget for YawSweep {
                                     });
 
                                     ui.with_layout(Layout::top_down(Align::Center), |ui| {
-                                        NumericInput::new(
-                                            "sweep-execution-distance",
-                                            &mut *GLOBAL_YAW_SWEEP_PIXELS.write().unwrap(),
-                                        )
-                                        .show(ui);
+                                        // TODO: Fix this dirty workaround
+                                        // write blows up for sum reason
+                                        if let Ok(mut pixels) = GLOBAL_YAW_SWEEP_PIXELS.try_write()
+                                        {
+                                            NumericInput::new(
+                                                "sweep‑execution‑distance",
+                                                &mut *pixels,
+                                            )
+                                            .show(ui);
+                                        } else {
+                                            let current =
+                                                *GLOBAL_YAW_SWEEP_PIXELS.try_read().unwrap();
+                                            let mut temp = current;
+
+                                            NumericInput::new(
+                                                "sweep‑execution‑distance (locked)",
+                                                &mut temp,
+                                            )
+                                            .show(ui);
+                                        }
 
                                         ui.add(
                                             StatusLabel::builder(
-                                                *GLOBAL_YAW_SWEEP_STATUS.read().unwrap(),
+                                                *GLOBAL_YAW_SWEEP_STATUS.try_read().unwrap(),
                                             )
                                             .size(INFO_LABEL_SIZE)
                                             .build(),
