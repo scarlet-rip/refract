@@ -1,0 +1,14 @@
+[Unit]
+Description=Refract Backend
+BindsTo=refract.target
+PartOf=refract.target
+
+[Service]
+Type=simple
+User=refract
+Group=input
+ExecStart=refract-backend
+Restart=on-failure
+
+[Install]
+WantedBy=refract.target

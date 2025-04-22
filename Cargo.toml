@@ -4,12 +4,12 @@ version = "0.0.0"
 edition = "2021"
 
 [[bin]]
-name = "refract"
-path = "src/bin/frontend-gui.rs"
+name = "refract-frontend"
+path = "src/bin/frontend.rs"
 
 [[bin]]
-name = "refract-input-backend"
-path = "src/bin/input-backend.rs"
+name = "refract-backend"
+path = "src/bin/backend.rs"
 
 [dependencies]
 # Tokio
