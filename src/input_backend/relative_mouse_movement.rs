@@ -1,7 +1,17 @@
 use super::shared_memory::{RefractEvent, SharedMemoryBackend};
 use evdev::{Device, InputEventKind, RelativeAxisType};
+use std::sync::atomic::{AtomicBool, Ordering};
+
+static WATCHER_STARTED: AtomicBool = AtomicBool::new(false);
 
 pub fn relative_mouse_movement_watcher(mut device: Device) {
+    if WATCHER_STARTED
+        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+        .is_err()
+    {
+        panic!("relative_mouse_movement_watcher is already started");
+    }
+
     tokio::task::spawn_blocking(move || {
         let mut shared_memory_backend = SharedMemoryBackend::default();
 

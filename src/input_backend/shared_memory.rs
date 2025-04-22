@@ -1,18 +1,31 @@
 use bytecheck::CheckBytes;
 use mmap_sync::synchronizer::Synchronizer;
-use named_sem::NamedSemaphore;
 use once_cell::sync::Lazy;
 use rkyv::{Archive, Deserialize, Serialize};
+use sem_safe::{
+    named::{OpenFlags, Semaphore},
+    SemaphoreRef,
+};
 use std::{
-    ffi::OsString,
+    ffi::{CString, OsString},
     sync::atomic::{AtomicBool, Ordering},
 };
 use tokio::time::Duration;
 
 static SHARED_MEMORY_FILE_PATH: Lazy<OsString> =
     Lazy::new(|| OsString::from("/dev/shm/refract-sm"));
-const SEMAPHORE_NAME: &str = "/refract-sem";
 static LISTENER_STARTED: AtomicBool = AtomicBool::new(false);
+static SEMAPHORE: Lazy<Semaphore> = Lazy::new(|| {
+    Semaphore::open(
+        &CString::new("/refract-sem").expect("Failed to name semaphore"),
+        OpenFlags::Create {
+            exclusive: false,
+            value: 0,
+            mode: 0o660,
+        },
+    )
+    .expect("Failed to open semaphore")
+});
 
 #[derive(Archive, Serialize, Deserialize, Debug, PartialEq)]
 #[archive_attr(derive(CheckBytes))]
@@ -43,12 +56,13 @@ impl SharedMemoryFrontend {
         }
 
         tokio::task::spawn_blocking(move || {
-            let mut semaphore =
-                NamedSemaphore::create(SEMAPHORE_NAME, 0).expect("Failed to create semaphore");
             let mut synchronizer = Synchronizer::new(&SHARED_MEMORY_FILE_PATH);
 
             loop {
-                semaphore.wait().expect("Failed to wait for semaphore");
+                SEMAPHORE
+                    .sem_ref()
+                    .wait()
+                    .expect("Failed to wait for semaphore");
 
                 let data =
                     unsafe { synchronizer.read::<RefractEvent>(false) }.expect("read failed");
@@ -60,22 +74,21 @@ impl SharedMemoryFrontend {
     }
 }
 
-pub struct SharedMemoryBackend {
+pub struct SharedMemoryBackend<'a> {
     synchronizer: Synchronizer,
-    semaphore: NamedSemaphore,
+    semaphore: SemaphoreRef<'a>,
 }
 
-impl Default for SharedMemoryBackend {
+impl Default for SharedMemoryBackend<'_> {
     fn default() -> Self {
         Self {
             synchronizer: Synchronizer::new(&SHARED_MEMORY_FILE_PATH),
-            semaphore: NamedSemaphore::create(SEMAPHORE_NAME, 0)
-                .expect("Failed to create semaphore"),
+            semaphore: SEMAPHORE.sem_ref(),
         }
     }
 }
 
-impl SharedMemoryBackend {
+impl SharedMemoryBackend<'_> {
     pub fn write(&mut self, event: &RefractEvent) {
         self.synchronizer
             .write(event, Duration::from_secs(1))
@@ -83,30 +96,4 @@ impl SharedMemoryBackend {
 
         self.semaphore.post().expect("Failed to post semaphore");
     }
-}
-
-pub async fn test() {
-    use super::{combo::combo_watcher, relative_mouse_movement::relative_mouse_movement_watcher};
-    use crate::input::Devices;
-
-    let devices = Devices::new();
-    let main_keyboard = devices.get_main_keyboard().unwrap();
-    let main_mouse = devices.get_main_mouse().unwrap();
-
-    combo_watcher(main_keyboard);
-    relative_mouse_movement_watcher(main_mouse);
-
-    SharedMemoryFrontend::start_listener(|archived_refract_event| match archived_refract_event {
-        ArchivedRefractEvent::Combo(combo) => match combo {
-            ArchivedComboEvent::Measure => {
-                println!("measure")
-            }
-            ArchivedComboEvent::Perform360 => {
-                println!("perform 360")
-            }
-        },
-        ArchivedRefractEvent::RelativeMouseMovement(movement) => {
-            println!("mouse movement: {movement}")
-        }
-    });
 }

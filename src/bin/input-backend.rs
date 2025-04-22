@@ -1,6 +1,6 @@
-use refract_sc::input_backend::shared_memory::test;
+use refract_sc::input_backend::start;
 
 #[tokio::main]
 async fn main() {
-    test().await
+    start()
 }
