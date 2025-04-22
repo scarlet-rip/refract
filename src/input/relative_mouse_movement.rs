@@ -1,6 +1,10 @@
 use super::shared_memory::{RefractEvent, SharedMemoryBackend};
 use evdev::{Device, InputEventKind, RelativeAxisType};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{
+    atomic::{AtomicBool, AtomicI32, Ordering},
+    Arc,
+};
+use tokio::sync::mpsc;
 
 static WATCHER_STARTED: AtomicBool = AtomicBool::new(false);
 
@@ -27,12 +31,10 @@ pub fn relative_mouse_movement_watcher(mut device: Device) {
     });
 }
 
-use std::sync::{mpsc, Arc, Mutex};
-
 impl Default for MouseTracker {
     fn default() -> Self {
         MouseTracker {
-            tracked_distance: Arc::new(Mutex::new(0)),
+            tracked_distance: Arc::new(AtomicI32::new(0)),
             tracking_active: Arc::new(AtomicBool::new(false)),
             stop_signal_sender: None,
         }
@@ -40,7 +42,7 @@ impl Default for MouseTracker {
 }
 
 pub struct MouseTracker {
-    tracked_distance: Arc<Mutex<i32>>,
+    tracked_distance: Arc<AtomicI32>,
     tracking_active: Arc<AtomicBool>,
     stop_signal_sender: Option<mpsc::Sender<()>>,
 }
@@ -52,9 +54,7 @@ impl MouseTracker {
 
     pub fn register_movement(&mut self, movement: i32) {
         if self.is_active() {
-            let mut total_movement = self.tracked_distance.lock().unwrap();
-
-            *total_movement += movement;
+            self.tracked_distance.fetch_add(movement, Ordering::Relaxed);
         }
     }
 
@@ -63,19 +63,20 @@ impl MouseTracker {
     }
 
     pub fn stop(&mut self) -> i32 {
-        if !self.tracking_active.swap(false, Ordering::Relaxed) {
+        let was_active = self.tracking_active.swap(false, Ordering::Relaxed);
+
+        if !was_active {
             return 0;
         }
 
         if let Some(sender) = &self.stop_signal_sender {
-            let _ = sender.send(());
+           sender.try_send(()).unwrap();
         }
 
-        let mut total_distance = self.tracked_distance.lock().unwrap();
-        let total = *total_distance;
+        let total_distance = self.tracked_distance.load(Ordering::Relaxed).abs();
 
-        *total_distance = 0;
+        self.tracked_distance.store(0, Ordering::Relaxed);
 
-        total.abs()
+        total_distance
     }
 }
