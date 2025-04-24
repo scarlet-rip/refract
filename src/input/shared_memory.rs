@@ -1,6 +1,5 @@
 use bytecheck::CheckBytes;
 use mmap_sync::synchronizer::Synchronizer;
-use once_cell::sync::Lazy;
 use rkyv::{Archive, Deserialize, Serialize};
 use sem_safe::{
     named::{OpenFlags, Semaphore},
@@ -12,11 +11,11 @@ use std::{
 };
 use tokio::time::Duration;
 
-static SHARED_MEMORY_FILE_PATH: Lazy<OsString> =
-    Lazy::new(|| OsString::from("/dev/shm/refract-sm"));
-static LISTENER_STARTED: AtomicBool = AtomicBool::new(false);
-static SEMAPHORE: Lazy<Semaphore> = Lazy::new(|| {
-    Semaphore::open(
+lazy_static::lazy_static! {
+    pub static ref SHARED_MEMORY_FILE_PATH: OsString = OsString::from("/dev/shm/refract-sm");
+    pub static ref SEMAPHORE_PATH: CString = CString::new("/refract-sem").expect("Failed to name semaphore");
+
+    static ref SEMAPHORE: Semaphore = Semaphore::open(
         &CString::new("/refract-sem").expect("Failed to name semaphore"),
         OpenFlags::Create {
             exclusive: false,
@@ -24,8 +23,10 @@ static SEMAPHORE: Lazy<Semaphore> = Lazy::new(|| {
             mode: 0o660,
         },
     )
-    .expect("Failed to open semaphore")
-});
+    .expect("Failed to open semaphore");
+}
+
+static LISTENER_STARTED: AtomicBool = AtomicBool::new(false);
 
 #[derive(Archive, Serialize, Deserialize, Debug, PartialEq)]
 #[archive_attr(derive(CheckBytes))]

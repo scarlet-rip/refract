@@ -2622,7 +2622,6 @@ dependencies = [
  "image",
  "lazy_static",
  "mmap-sync",
- "once_cell",
  "rkyv",
  "scarlet-egui",
  "sem_safe",

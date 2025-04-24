@@ -8,15 +8,23 @@ use crate::input::{
     relative_mouse_movement::relative_mouse_movement_watcher,
 };
 
-pub fn start() {
+pub async fn start() {
     let devices = Devices::new();
-    let main_keyboard = devices
-        .get_main_keyboard()
-        .expect("Failed to find the main keyboard");
+    let main_keyboard_future = devices.get_main_keyboard();
+
     let main_mouse = devices
         .get_main_mouse()
         .expect("Failed to find the main mouse");
 
-    combo_watcher(main_keyboard);
+    println!("mouse {:#?}", main_mouse.name().unwrap());
+
     relative_mouse_movement_watcher(main_mouse);
+
+    let main_keyboard = main_keyboard_future
+        .await
+        .expect("Failed to find the main keyboard");
+
+    println!("keybord {:#?}", main_keyboard.name().unwrap());
+
+    combo_watcher(main_keyboard);
 }
