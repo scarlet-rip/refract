@@ -37,12 +37,18 @@ fn convert_sensitivity(
     original_in_game_sensitivity * d360_difference
 }
 
+// TODO: Im sure I did something wrong w byte stuff here, look into that
+static NINE_SLICE_PNG_BYTES: &[u8] = include_bytes!("../../../assets/nine_slice.png");
+
 impl SensitivityConversion {
     pub(crate) fn show(&mut self, ui: &mut Ui) {
+        ui.ctx()
+            .include_bytes("bytes://nine_slice.png", NINE_SLICE_PNG_BYTES);
+
         let texture = ui
             .ctx()
             .try_load_texture(
-                "file://assets/nine_slice.png",
+                "bytes://nine_slice.png",
                 TextureOptions {
                     magnification: TextureFilter::Nearest,
                     minification: TextureFilter::Nearest,

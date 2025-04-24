@@ -46,12 +46,18 @@ impl WidgetState for YawSweepState {}
 #[derive(Default)]
 pub(crate) struct YawSweep {}
 
+// TODO: Im sure I did something wrong w byte stuff here, look into that
+static NINE_SLICE_PNG_BYTES: &[u8] = include_bytes!("../../../assets/nine_slice.png");
+
 impl Widget for YawSweep {
     fn ui(self, ui: &mut Ui) -> Response {
+
+        ui.ctx().include_bytes("bytes://nine_slice.png", NINE_SLICE_PNG_BYTES);
+
         let texture = ui
             .ctx()
             .try_load_texture(
-                "file://assets/nine_slice.png",
+                "bytes://nine_slice.png",
                 TextureOptions {
                     magnification: TextureFilter::Nearest,
                     minification: TextureFilter::Nearest,
