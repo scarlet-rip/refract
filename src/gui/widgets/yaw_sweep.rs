@@ -1,3 +1,4 @@
+use super::ASSETS_DIRECTORY;
 use super::{KeybindActionLabel, StatusLabel};
 use crate::mouse::{GLOBAL_YAW_SWEEP_PIXELS, GLOBAL_YAW_SWEEP_STATUS};
 use crate::start;
@@ -46,18 +47,12 @@ impl WidgetState for YawSweepState {}
 #[derive(Default)]
 pub(crate) struct YawSweep {}
 
-// TODO: Im sure I did something wrong w byte stuff here, look into that
-static NINE_SLICE_PNG_BYTES: &[u8] = include_bytes!("../../../assets/nine_slice.png");
-
 impl Widget for YawSweep {
     fn ui(self, ui: &mut Ui) -> Response {
-
-        ui.ctx().include_bytes("bytes://nine_slice.png", NINE_SLICE_PNG_BYTES);
-
         let texture = ui
             .ctx()
             .try_load_texture(
-                "bytes://nine_slice.png",
+                &format!("file://{}/nine_slice.png", ASSETS_DIRECTORY.as_str()),
                 TextureOptions {
                     magnification: TextureFilter::Nearest,
                     minification: TextureFilter::Nearest,

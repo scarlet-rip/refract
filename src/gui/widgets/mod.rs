@@ -15,3 +15,7 @@ pub(crate) use status_label::StatusLabel;
 
 mod keybind_action_label;
 pub(crate) use keybind_action_label::KeybindActionLabel;
+
+lazy_static::lazy_static! {
+    pub static ref ASSETS_DIRECTORY: String = std::env::var("REFRACT_ASSETS_DIRECTORY").unwrap_or(String::from("assets"));
+}
