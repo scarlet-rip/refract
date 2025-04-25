@@ -17,23 +17,31 @@ lazy_static::lazy_static! {
     pub static ref SHARED_MEMORY_FILE_PATH: OsString = OsString::from("/dev/shm/refract-sm");
 
     static ref SEMAPHORE: Semaphore = {
-        let semaphore = Semaphore::open(
-            &CString::new("/refract-sem").expect("Failed to name semaphore"),
-            OpenFlags::Create {
-                exclusive: false,
-                value: 0,
-                mode: 0o660,
-            },
-        ).expect("Failed to open semaphore");
-
         let semaphore_path = "/dev/shm/sem.refract-sem";
 
-        if std::fs::File::open(semaphore_path).is_err() {
+        if std::fs::File::open(semaphore_path).is_ok() {
+            return Semaphore::open(
+                &CString::new("/refract-sem").expect("Failed to name semaphore"),
+                OpenFlags::Create {
+                    exclusive: false,
+                    value: 0,
+                    mode: 0o660,
+                },
+            ).expect("Failed to open semaphore")
+        } else {
+            let semaphore = Semaphore::open(
+                &CString::new("/refract-sem").expect("Failed to name semaphore"),
+                OpenFlags::Create {
+                    exclusive: false,
+                    value: 0,
+                    mode: 0o660,
+                },
+            ).expect("Failed to open semaphore");
+
             set_permissions(semaphore_path, Permissions::from_mode(0o660)).expect("Failed to set semaphore file permissions");
+
+            semaphore
         }
-
-
-        semaphore
     };
 }
 
