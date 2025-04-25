@@ -26,7 +26,12 @@ lazy_static::lazy_static! {
             },
         ).expect("Failed to open semaphore");
 
-        set_permissions("/dev/shm/sem.refract-sem", Permissions::from_mode(0o660)).expect("Failed to set semaphore file permissions");
+        let semaphore_path = "/dev/shm/sem.refract-sem";
+
+        if std::fs::File::open(semaphore_path).is_err() {
+            set_permissions(semaphore_path, Permissions::from_mode(0o660)).expect("Failed to set semaphore file permissions");
+        }
+
 
         semaphore
     };
