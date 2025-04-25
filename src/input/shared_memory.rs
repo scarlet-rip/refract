@@ -7,23 +7,29 @@ use sem_safe::{
 };
 use std::{
     ffi::{CString, OsString},
+    fs::{set_permissions, Permissions},
+    os::unix::fs::PermissionsExt,
     sync::atomic::{AtomicBool, Ordering},
 };
 use tokio::time::Duration;
 
 lazy_static::lazy_static! {
     pub static ref SHARED_MEMORY_FILE_PATH: OsString = OsString::from("/dev/shm/refract-sm");
-    pub static ref SEMAPHORE_PATH: CString = CString::new("/refract-sem").expect("Failed to name semaphore");
 
-    static ref SEMAPHORE: Semaphore = Semaphore::open(
-        &CString::new("/refract-sem").expect("Failed to name semaphore"),
-        OpenFlags::Create {
-            exclusive: false,
-            value: 0,
-            mode: 0o660,
-        },
-    )
-    .expect("Failed to open semaphore");
+    static ref SEMAPHORE: Semaphore = {
+        let semaphore = Semaphore::open(
+            &CString::new("/refract-sem").expect("Failed to name semaphore"),
+            OpenFlags::Create {
+                exclusive: false,
+                value: 0,
+                mode: 0o660,
+            },
+        ).expect("Failed to open semaphore");
+
+        set_permissions("/dev/shm/sem.refract-sem", Permissions::from_mode(0o660)).expect("Failed to set semaphore file permissions");
+
+        semaphore
+    };
 }
 
 static LISTENER_STARTED: AtomicBool = AtomicBool::new(false);
