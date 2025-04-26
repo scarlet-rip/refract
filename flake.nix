@@ -3,6 +3,8 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
     rust-overlay.url = "github:oxalica/rust-overlay";
+
+	refract.url = "./packages/nixos";
   };
 
   outputs = inputs:
@@ -50,6 +52,9 @@
           };
 
           devShells.default = mkDevShell pkgs.rust-bin.stable.latest.default;
+		  packages.default = inputs.refract.packages.default;
         };
+
+		flake.nixosModules.default = inputs.refract.nixosModules.default;
     };
 }
