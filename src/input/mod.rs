@@ -11,9 +11,8 @@ use crate::input::{
 pub async fn start() {
     let devices = Devices::new();
     let main_keyboard_future = devices.get_main_keyboard();
-
     let main_mouse = devices
-        .get_main_mouse()
+        .get_main_mouse().await
         .expect("Failed to find the main mouse");
 
     println!("mouse {:#?}", main_mouse.name().unwrap());
