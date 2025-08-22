@@ -15,10 +15,11 @@ use std::{
 
 const SHARED_MEMORY_FILE_PATH: &str = "/dev/shm/refract-sm";
 static LISTENER_STARTED: AtomicBool = AtomicBool::new(false);
+const SEMAPHORE_PATH_STR: &str = "/dev/shm/sem.refract-sem";
 
 lazy_static::lazy_static! {
-    pub static ref SHARED_MEMORY_FILE_PATH_OS_STR: OsString = OsString::from(SHARED_MEMORY_FILE_PATH.to_string());
     pub static ref SEMAPHORE_NAME_C_STRING: CString =  CString::new("/refract-sem").expect("Failed to name semaphore");
+    pub static ref SHARED_MEMORY_FILE_PATH_OS_STR: OsString = OsString::from(SHARED_MEMORY_FILE_PATH.to_string());
     pub static ref SEMAPHORE: Semaphore = initalize_read_sync_semaphore();
 }
 
@@ -37,9 +38,7 @@ pub enum RefractEvent {
 }
 
 fn initalize_read_sync_semaphore() -> Semaphore {
-    let semaphore_path = "/dev/shm/sem.refract-sem";
-
-    if std::fs::File::open(semaphore_path).is_ok() {
+    if std::fs::File::open(SEMAPHORE_PATH_STR).is_ok() {
         Semaphore::open(
             &SEMAPHORE_NAME_C_STRING,
             OpenFlags::Create {
@@ -60,7 +59,7 @@ fn initalize_read_sync_semaphore() -> Semaphore {
         )
         .expect("Failed to open semaphore");
 
-        set_permissions(semaphore_path, Permissions::from_mode(0o660))
+        set_permissions(SEMAPHORE_PATH_STR, Permissions::from_mode(0o660))
             .expect("Failed to set semaphore file permissions");
 
         semaphore
