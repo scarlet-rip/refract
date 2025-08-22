@@ -1,4 +1,4 @@
-use super::shared_memory::{ComboEvent, RefractEvent, SharedMemoryBackend};
+use super::shared_memory::{ComboEvent, RefractEvent, SharedMemoryWriter};
 use evdev::{Device, InputEventKind, Key};
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -15,7 +15,7 @@ pub fn combo_watcher(mut device: Device) {
 
     tokio::task::spawn_blocking(move || {
         let mut keys_down: HashSet<Key> = HashSet::new();
-        let mut shared_memory_backend = SharedMemoryBackend::default();
+        let mut shared_memory_backend = SharedMemoryWriter::default();
 
         while let Ok(events) = device.fetch_events() {
             for event in events {

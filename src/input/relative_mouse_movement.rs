@@ -1,4 +1,4 @@
-use super::shared_memory::{RefractEvent, SharedMemoryBackend};
+use super::shared_memory::{RefractEvent, SharedMemoryWriter};
 use evdev::{Device, InputEventKind, RelativeAxisType};
 use std::sync::{
     atomic::{AtomicBool, AtomicI32, Ordering},
@@ -17,7 +17,7 @@ pub fn relative_mouse_movement_watcher(mut device: Device) {
     }
 
     tokio::task::spawn_blocking(move || {
-        let mut shared_memory_backend = SharedMemoryBackend::default();
+        let mut shared_memory_backend = SharedMemoryWriter::default();
 
         while let Ok(events) = device.fetch_events() {
             for event in events {
@@ -70,7 +70,7 @@ impl MouseTracker {
         }
 
         if let Some(sender) = &self.stop_signal_sender {
-           sender.try_send(()).unwrap();
+            sender.try_send(()).unwrap();
         }
 
         let total_distance = self.tracked_distance.load(Ordering::Relaxed).abs();

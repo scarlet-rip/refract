@@ -116,12 +116,12 @@
       },
       "locked": {
         "lastModified": 1,
-        "narHash": "sha256-LMZOETaqLMuFWDM6Mg/oB9sTOfn9h6qYuVyXcvxlQNI=",
-        "path": "/nix/store/dfyjj9zad1997pb5j3l6raj584dd4w7d-source/packages/nixos",
+        "narHash": "sha256-fLSgN8Oi2P1uWwiH1jaQb6fBUQfoNSd9ImgwaaYimEc=",
+        "path": "/nix/store/s0221jxyawgbbw7wsd5wlb2fk73ilynq-source/packages/nixos",
         "type": "path"
       },
       "original": {
-        "path": "/nix/store/dfyjj9zad1997pb5j3l6raj584dd4w7d-source/packages/nixos",
+        "path": "/nix/store/s0221jxyawgbbw7wsd5wlb2fk73ilynq-source/packages/nixos",
         "type": "path"
       }
     },
