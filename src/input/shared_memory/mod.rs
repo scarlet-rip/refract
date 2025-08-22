@@ -1,3 +1,6 @@
+mod reader;
+mod writer;
+
 use bytecheck::CheckBytes;
 use mmap_sync::synchronizer::Synchronizer;
 use rkyv::{Archive, Deserialize, Serialize};
@@ -12,6 +15,7 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 use tokio::time::Duration;
+use file_owner::PathExt;
 
 // TODO: properly handle the file permission stuff
 
@@ -43,6 +47,9 @@ lazy_static::lazy_static! {
             ).expect("Failed to open semaphore");
 
             set_permissions(semaphore_path, Permissions::from_mode(0o660)).expect("Failed to set semaphore file permissions");
+            
+            semaphore_path.set_owner("refract").expect("Failed to set semaphore owner");
+            semaphore_path.set_group("refract").expect("Failed to set semaphore owner");
 
             return semaphore
         }
@@ -128,6 +135,7 @@ impl SharedMemoryBackend<'_> {
 
             if let Ok(metadata) = fs::metadata(&path) {
                 let current_perms = metadata.permissions().mode() & 0o777; // Only permission bits
+
                 if current_perms != desired_mode {
                     fs::set_permissions(&path, perms.clone())
                         .unwrap_or_else(|_| panic!("Failed to set permissions for {path}"));
