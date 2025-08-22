@@ -1,16 +1,21 @@
+use super::shared_memory::{ComboEvent, RefractEvent, SharedMemoryWriter};
 use evdev::{Device, InputEventKind, Key};
 use std::collections::HashSet;
-use std::sync::mpsc;
-use std::thread;
+use std::sync::atomic::{AtomicBool, Ordering};
 
-pub(crate) fn start_keybind_receivers(
-    mut device: Device,
-) -> (mpsc::Receiver<()>, mpsc::Receiver<()>) {
-    let (start_tracking_key_sender, start_tracking_key_receiver) = mpsc::channel::<()>();
-    let (do_360_sender, do_360_receiver) = mpsc::channel::<()>();
+static WATCHER_STARTED: AtomicBool = AtomicBool::new(false);
 
-    thread::spawn(move || {
+pub fn combo_watcher(mut device: Device) {
+    if WATCHER_STARTED
+        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+        .is_err()
+    {
+        panic!("combo_watcher is already started");
+    }
+
+    tokio::task::spawn_blocking(move || {
         let mut keys_down: HashSet<Key> = HashSet::new();
+        let mut shared_memory_backend = SharedMemoryWriter::default();
 
         while let Ok(events) = device.fetch_events() {
             for event in events {
@@ -29,19 +34,21 @@ pub(crate) fn start_keybind_receivers(
                     if keys_down.contains(&Key::KEY_LEFTALT)
                         && keys_down.contains(&Key::KEY_LEFTBRACE)
                     {
-                        start_tracking_key_sender.send(()).unwrap();
+                        let event = RefractEvent::Combo(ComboEvent::Measure);
+
+                        shared_memory_backend.write(&event);
                     }
 
                     // Alt + ]
                     if keys_down.contains(&Key::KEY_LEFTALT)
                         && keys_down.contains(&Key::KEY_RIGHTBRACE)
                     {
-                        do_360_sender.send(()).unwrap();
+                        let event = RefractEvent::Combo(ComboEvent::Perform360);
+
+                        shared_memory_backend.write(&event);
                     }
                 }
             }
         }
     });
-
-    (start_tracking_key_receiver, do_360_receiver)
 }

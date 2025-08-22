@@ -1,3 +1,4 @@
+use super::ASSETS_DIRECTORY;
 use egui::{
     load::TexturePoll, Align, Color32, Layout, Margin, RichText, SizeHint, TextEdit, TextureFilter,
     TextureOptions, Ui,
@@ -42,7 +43,7 @@ impl SensitivityConversion {
         let texture = ui
             .ctx()
             .try_load_texture(
-                "file://assets/nine_slice.png",
+                &format!("file://{}/nine_slice.png", ASSETS_DIRECTORY.as_str()),
                 TextureOptions {
                     magnification: TextureFilter::Nearest,
                     minification: TextureFilter::Nearest,
