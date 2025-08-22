@@ -2,6 +2,7 @@ mod reader;
 mod writer;
 
 use bytecheck::CheckBytes;
+use file_owner::PathExt;
 use mmap_sync::synchronizer::Synchronizer;
 use rkyv::{Archive, Deserialize, Serialize};
 use sem_safe::{
@@ -15,7 +16,6 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 use tokio::time::Duration;
-use file_owner::PathExt;
 
 // TODO: properly handle the file permission stuff
 
@@ -44,14 +44,25 @@ lazy_static::lazy_static! {
                     value: 0,
                     mode: 0o660,
                 },
-            ).expect("Failed to open semaphore");
+            );
 
-            set_permissions(semaphore_path, Permissions::from_mode(0o660)).expect("Failed to set semaphore file permissions");
-            
-            semaphore_path.set_owner("refract").expect("Failed to set semaphore owner");
-            semaphore_path.set_group("refract").expect("Failed to set semaphore owner");
+            use errno::errno;
 
-            return semaphore
+            match semaphore {
+                Ok(sem) => {
+                    println!("Semaphore opened: {:?}", sem);
+
+                    set_permissions(semaphore_path, Permissions::from_mode(0o660)).expect("Failed to set semaphore file permissions");
+
+                    return sem;
+                }
+                Err(()) => {
+                    let err = errno();
+                    eprintln!("sem_open failed with errno = {} ({})", err.0, err);
+
+                    panic!("AAAHH");
+                }
+            }
         }
     };
 }
@@ -119,29 +130,38 @@ impl Default for SharedMemoryBackend<'_> {
     }
 }
 
+
+use std::sync::Once;
+use std::fs;
+
 impl SharedMemoryBackend<'_> {
     pub fn write(&mut self, event: &RefractEvent) {
         self.synchronizer
             .write(event, Duration::from_secs(1))
             .expect("failed to write data");
 
-        use std::fs;
 
-        let desired_mode = 0o660;
-        let perms = fs::Permissions::from_mode(desired_mode);
+        static INIT: Once = Once::new();
 
-        for suffix in ["_data_0", "_data_1", "_state"] {
-            let path = format!("{SHARED_MEMORY_FILE_PATH}{suffix}");
+        INIT.call_once(|| {
+            let desired_mode = 0o660;
+            let perms = fs::Permissions::from_mode(desired_mode);
 
-            if let Ok(metadata) = fs::metadata(&path) {
-                let current_perms = metadata.permissions().mode() & 0o777; // Only permission bits
+            for suffix in ["_data_0", "_data_1", "_state"] {
+                let path = format!("{SHARED_MEMORY_FILE_PATH}{suffix}");
 
-                if current_perms != desired_mode {
-                    fs::set_permissions(&path, perms.clone())
-                        .unwrap_or_else(|_| panic!("Failed to set permissions for {path}"));
+                if let Ok(metadata) = fs::metadata(&path) {
+                    let current_perms = metadata.permissions().mode() & 0o777;
+
+                    if current_perms != desired_mode {
+                        fs::set_permissions(&path, perms.clone())
+                            .unwrap_or_else(|_| panic!("Failed to set permissions for {path}"));
+
+                        path.set_group("refract").expect("failed to set group");
+                    }
                 }
             }
-        }
+        });
 
         self.semaphore.post().expect("Failed to post semaphore");
     }

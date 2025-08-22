@@ -43,6 +43,15 @@
 			  LD_LIBRARY_PATH = "${lib.makeLibraryPath runtimeDeps}";
 			  shellHook = 
 			  ''
+
+			  start_backend() {
+    			sudo -u "refract" ./target/debug/refract-backend
+			  }
+
+			  start_frontend() {
+    		    ./target/debug/refract-frontend
+			  }
+
   			  '';
             };
         in {

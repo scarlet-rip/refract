@@ -39,3 +39,4 @@ rkyv = { version = "0.7.40", features = ["validation", "strict"] }
 bytecheck = { version = "~0.6.8", default-features = false }
 sem_safe = { version = "0.2.1", default-features = false, features = [ "named" ] }
 file-owner = "0.1.2"
+errno = "0.3.13"
