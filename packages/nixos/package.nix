@@ -16,8 +16,8 @@ in rustPlatform.buildRustPackage rec {
   	src = fetchFromGitHub {
     	owner = "scarlet-rip";
     	repo = "refract";
-    	rev = "dfec26e505182f6872e086b8fe176a87ba0d7c12";
-    	hash = "sha256-W+Z5DU7EqGCNWPidb4jtizUTE30vGTR3i2NoXHUZD78=";
+    	rev = "6ecf2281a241caa8efc0e8c8ad6f5abefd6b3183";
+    	hash = "sha256-iwYjzPAZRQ4zaa4YVP6Y+qER+x0eeI4asRPhb0s/n8k=";
   	};
 
 	cargoLock = {

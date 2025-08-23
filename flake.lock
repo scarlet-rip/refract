@@ -117,11 +117,11 @@
       "locked": {
         "lastModified": 1,
         "narHash": "sha256-fLSgN8Oi2P1uWwiH1jaQb6fBUQfoNSd9ImgwaaYimEc=",
-        "path": "/nix/store/3v4a43hrmvi1rd6wngibc4496rgh8nbh-source/packages/nixos",
+        "path": "/nix/store/g03wxwii285vlwnl41qprps8s871l7yr-source/packages/nixos",
         "type": "path"
       },
       "original": {
-        "path": "/nix/store/3v4a43hrmvi1rd6wngibc4496rgh8nbh-source/packages/nixos",
+        "path": "/nix/store/g03wxwii285vlwnl41qprps8s871l7yr-source/packages/nixos",
         "type": "path"
       }
     },
