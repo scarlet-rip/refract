@@ -24,7 +24,12 @@ pub fn relative_mouse_movement_watcher(mut device: Device) {
                 if let InputEventKind::RelAxis(RelativeAxisType::REL_X) = event.kind() {
                     let movement = event.value();
 
-                    shared_memory_backend.write(&RefractEvent::RelativeMouseMovement(movement));
+                    let result =
+                        shared_memory_backend.write(&RefractEvent::RelativeMouseMovement(movement));
+
+                    if let Err(error) = result {
+                        eprintln!("SharedMemory: {error}");
+                    }
                 }
             }
         }

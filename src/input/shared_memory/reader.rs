@@ -1,38 +1,49 @@
-use super::{
-    ArchivedRefractEvent, RefractEvent, LISTENER_STARTED, SEMAPHORE, SHARED_MEMORY_FILE_PATH_OS_STR,
-};
+use super::{ArchivedRefractEvent, RefractEvent, SEMAPHORE, SHARED_MEMORY_FILE_PATH_OS_STR};
+use super::{SemSyncError, SharedMemoryError};
 use mmap_sync::synchronizer::Synchronizer;
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicBool, Ordering};
+
+static RUNNING: AtomicBool = AtomicBool::new(false);
 
 pub struct SharedMemoryReader {}
 
 impl SharedMemoryReader {
-    pub fn start_listener<F>(mut handler: F)
+    pub fn start_reader<F>(mut handler: F)
     where
-        F: FnMut(&ArchivedRefractEvent) + Send + 'static,
+        F: FnMut(&ArchivedRefractEvent),
     {
-        if LISTENER_STARTED
-            .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
-            .is_err()
-        {
-            panic!("Listener is already running");
+        if RUNNING.swap(true, Ordering::SeqCst) {
+            panic!("SharedMemoryReader::start_reader() called more than once!");
         }
 
-        tokio::task::spawn_blocking(move || {
-            let mut synchronizer = Synchronizer::new(&SHARED_MEMORY_FILE_PATH_OS_STR);
+        let mut synchronizer = Synchronizer::new(&SHARED_MEMORY_FILE_PATH_OS_STR);
 
-            loop {
-                SEMAPHORE
-                    .sem_ref()
-                    .wait()
-                    .expect("Failed to wait for semaphore");
-
-                let data =
-                    unsafe { synchronizer.read::<RefractEvent>(false) }.expect("read failed");
-                let archived_data = &*data;
-
-                handler(archived_data);
+        loop {
+            if let Err(error) = Self::read_once(&mut synchronizer, &mut handler) {
+                eprintln!("SharedMemoryReader: {error}");
             }
-        });
+        }
+    }
+
+    fn read_once<F>(
+        synchronizer: &mut Synchronizer,
+        handler: &mut F,
+    ) -> Result<(), SharedMemoryError>
+    where
+        F: FnMut(&ArchivedRefractEvent),
+    {
+        SEMAPHORE
+            .sem_ref()
+            .wait()
+            .map_err(|_| SharedMemoryError::SemSync(SemSyncError::Wait))?;
+
+        let data =
+            unsafe { synchronizer.read::<RefractEvent>(false) }.map_err(SharedMemoryError::Read)?;
+
+        let archived_data = &*data;
+
+        handler(archived_data);
+
+        Ok(())
     }
 }

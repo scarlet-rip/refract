@@ -35,8 +35,11 @@ pub fn combo_watcher(mut device: Device) {
                         && keys_down.contains(&Key::KEY_LEFTBRACE)
                     {
                         let event = RefractEvent::Combo(ComboEvent::Measure);
+                        let result = shared_memory_backend.write(&event);
 
-                        shared_memory_backend.write(&event);
+                        if let Err(error) = result {
+                            eprintln!("SharedMemory: {error}");
+                        }
                     }
 
                     // Alt + ]
@@ -44,8 +47,11 @@ pub fn combo_watcher(mut device: Device) {
                         && keys_down.contains(&Key::KEY_RIGHTBRACE)
                     {
                         let event = RefractEvent::Combo(ComboEvent::Perform360);
+                        let result = shared_memory_backend.write(&event);
 
-                        shared_memory_backend.write(&event);
+                        if let Err(error) = result {
+                            eprintln!("SharedMemory: {error}");
+                        }
                     }
                 }
             }
