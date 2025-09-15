@@ -1,11 +1,6 @@
+use super::KEYBIND_HIGHLIGHT_COLOR;
 use bon::Builder;
-use egui::{text::LayoutJob, Color32, Response, TextFormat, TextStyle, Ui, Widget};
-use lazy_static::lazy_static;
-
-lazy_static! {
-    static ref KEYBIND_HIGHLIGHT_COLOR: Color32 =
-        Color32::from_hex("#821E1E").expect("Invalid HEX");
-}
+use egui::{text::LayoutJob, Response, TextFormat, TextStyle, Ui, Widget};
 
 #[derive(Builder)]
 pub(crate) struct KeybindActionLabel<'a> {

@@ -4,13 +4,13 @@ use crate::input::{
     shared_memory::{ArchivedComboEvent, ArchivedRefractEvent, SharedMemoryReader},
 };
 use egui::Context;
+use once_cell::sync::Lazy;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex, RwLock};
 
-lazy_static::lazy_static! {
-    pub static ref GLOBAL_YAW_SWEEP_PIXELS: Arc<RwLock<i32>> = Arc::new(RwLock::new(0));
-    pub static ref GLOBAL_YAW_SWEEP_STATUS: Arc<RwLock<bool>> = Arc::new(RwLock::new(false));
-}
+pub static GLOBAL_YAW_SWEEP_PIXELS: Lazy<Arc<RwLock<i32>>> = Lazy::new(|| Arc::new(RwLock::new(0)));
+pub static GLOBAL_YAW_SWEEP_STATUS: Lazy<Arc<RwLock<bool>>> =
+    Lazy::new(|| Arc::new(RwLock::new(false)));
 
 pub fn start(ui_context: Arc<Mutex<Context>>) -> (mpsc::Receiver<bool>, mpsc::Receiver<i32>) {
     let mouse_tracker = Arc::new(Mutex::new(MouseTracker::default()));

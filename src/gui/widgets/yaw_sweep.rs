@@ -1,12 +1,14 @@
-use super::ASSETS_DIRECTORY;
-use super::{KeybindActionLabel, StatusLabel};
+use super::{
+    KeybindActionLabel, StatusLabel, ASSETS_DIRECTORY, FRAME_TINT, GROUP_HEADER_COLOR,
+    GROUP_HEADER_SIZE, INFO_LABEL_SIZE, PARTITION_HEADER_COLOR, PARTITION_HEADER_SIZE,
+    PARTITION_INNER_LABEL_SIZE,
+};
 use crate::mouse::{GLOBAL_YAW_SWEEP_PIXELS, GLOBAL_YAW_SWEEP_STATUS};
 use crate::start;
 use egui::{
-    load::TexturePoll, Align, Color32, Layout, Margin, Response, RichText, SizeHint, TextureFilter,
+    load::TexturePoll, Align, Layout, Margin, Response, RichText, SizeHint, TextureFilter,
     TextureOptions, Ui, Widget,
 };
-use lazy_static::lazy_static;
 use scarlet_egui::{
     frame::{Frame, FrameDecoration, FrameDecorationNineSlice},
     input_field::NumericInput,
@@ -14,24 +16,6 @@ use scarlet_egui::{
 };
 use std::sync::Arc;
 use tokio::sync::{mpsc::Receiver, Mutex};
-
-const GROUP_HEADER_SIZE: f32 = 14.0;
-const PARTITION_HEADER_SIZE: f32 = 14.0;
-const PARTITION_INNER_LABEL_SIZE: f32 = 12.5;
-
-const INFO_LABEL_SIZE: f32 = 9.0;
-
-lazy_static! {
-    static ref FRAME_TINT: Color32 = Color32::from_hex("#3a3737").expect("Invalid HEX");
-    static ref GROUP_HEADER_COLOR: Color32 = Color32::from_hex("#6b0707").expect("Invalid HEX");
-    static ref PARTITION_HEADER_COLOR: Color32 = Color32::from_hex("#6b0707").expect("Invalid HEX");
-    static ref KEYBIND_HIGHLIGHT_COLOR: Color32 =
-        Color32::from_hex("#821E1E").expect("Invalid HEX");
-    static ref STATUS_HIGHLIGHT_COLOR_ACTIVE: Color32 =
-        Color32::from_hex("#076A19").expect("Invalid HEX");
-    static ref STATUS_HIGHLIGHT_COLOR_INACTIVE: Color32 =
-        Color32::from_hex("#821E1E").expect("Invalid HEX");
-}
 
 #[derive(Clone)]
 struct YawSweepState {
