@@ -27,7 +27,8 @@ const PARTITION_HEADER_SIZE: f32 = 14.0;
 const PARTITION_INNER_LABEL_SIZE: f32 = 12.5;
 const INFO_LABEL_SIZE: f32 = 9.0;
 
-static FRAME_TINT: Lazy<Color32> = Lazy::new(|| Color32::from_hex("#3a3737").expect("Invalid HEX"));
+static FRAME_TINT: Lazy<Color32> =
+    Lazy::new(|| Color32::from_hex("#3a3737").expect("Invalid HEX"));
 
 static GROUP_HEADER_COLOR: Lazy<Color32> =
     Lazy::new(|| Color32::from_hex("#6b0707").expect("Invalid HEX"));

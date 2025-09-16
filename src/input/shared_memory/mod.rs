@@ -1,4 +1,5 @@
 mod reader;
+mod sync;
 mod writer;
 
 pub use self::{reader::SharedMemoryReader, writer::SharedMemoryWriter};
@@ -8,25 +9,11 @@ use file_owner::PathExt;
 use mmap_sync::synchronizer::SynchronizerError;
 use once_cell::sync::Lazy;
 use rkyv::{Archive, Deserialize, Serialize};
-use sem_safe::named::{OpenFlags, Semaphore};
-use std::{
-    ffi::{CString, OsString},
-    fs,
-    os::unix::fs::PermissionsExt,
-    path::Path,
-};
+use std::{ffi::OsString, fs, os::unix::fs::PermissionsExt, path::Path};
 
 const SHARED_MEMORY_FILE_PATH: &str = "/dev/shm/refract-sm";
-const SEMAPHORE_PATH_STR: &str = "/dev/shm/sem.refract-sem";
-
-static SEMAPHORE_NAME_C_STRING: Lazy<CString> =
-    Lazy::new(|| CString::new("/refract-sem").expect("Failed to name semaphore"));
-
 static SHARED_MEMORY_FILE_PATH_OS_STR: Lazy<OsString> =
     Lazy::new(|| OsString::from(SHARED_MEMORY_FILE_PATH.to_string()));
-
-static SHARED_MEMORY_SYNC_SEMAPHORE: Lazy<Semaphore> =
-    Lazy::new(initialize_shared_memory_sync_semaphore);
 
 use miette::Diagnostic;
 
@@ -68,37 +55,6 @@ pub enum ComboEvent {
 pub enum RefractEvent {
     Combo(ComboEvent),
     RelativeMouseMovement(i32),
-}
-
-fn initialize_shared_memory_sync_semaphore() -> Semaphore {
-    if std::fs::File::open(SEMAPHORE_PATH_STR).is_ok() {
-        Semaphore::open(
-            &SEMAPHORE_NAME_C_STRING,
-            OpenFlags::Create {
-                exclusive: false,
-                value: 0,
-                mode: 0o660,
-            },
-        )
-        .expect("Failed to open semaphore")
-    } else {
-        let semaphore = Semaphore::open(
-            &SEMAPHORE_NAME_C_STRING,
-            OpenFlags::Create {
-                exclusive: false,
-                value: 0,
-                mode: 0o660,
-            },
-        )
-        .expect("Failed to open semaphore");
-
-        ensure_file_permissions_for_front_backend_communication(
-            "SemSync|>File Permissions Check",
-            vec![SEMAPHORE_PATH_STR],
-        );
-
-        semaphore
-    }
 }
 
 pub fn ensure_file_permissions_for_front_backend_communication<I, P>(

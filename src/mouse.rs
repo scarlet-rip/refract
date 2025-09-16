@@ -19,7 +19,7 @@ pub fn start(ui_context: Arc<Mutex<Context>>) -> (mpsc::Receiver<bool>, mpsc::Re
     let (tracking_status_sender, tracking_status_receiver) = mpsc::channel::<bool>(1);
     let (total_movement_sender, total_movement_receiver) = mpsc::channel::<i32>(1);
 
-    SharedMemoryReader::start_reader(move |event| match event {
+    SharedMemoryReader::default().start_reader(move |event| match event {
         ArchivedRefractEvent::Combo(combo) => match combo {
             ArchivedComboEvent::Measure => {
                 let mut mouse_tracker = mouse_tracker.try_lock().unwrap();
