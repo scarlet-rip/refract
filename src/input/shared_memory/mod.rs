@@ -58,6 +58,11 @@ pub fn ensure_file_permissions_for_front_backend_communication<I, P>(
 
     for path in file_paths {
         let path = path.as_ref();
+
+        if !fs::exists(path).expect("How did fs::exists fail...") {
+            let _ = fs::File::create_new(path);
+        }
+
         set_file_mode_if_different(path, DESIRED_MODE, panic_identifier);
         set_file_owner_if_different(path, DESIRED_OWNER, panic_identifier);
         set_file_group_if_different(path, DESIRED_GROUP, panic_identifier);

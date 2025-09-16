@@ -21,7 +21,7 @@ static SEMAPHORE_NAME_C_STRING: Lazy<CString> =
     Lazy::new(|| CString::new("/refract-sem").expect("Failed to name semaphore"));
 
 pub fn open_shm_sync_sem() -> Semaphore {
-    if std::fs::File::open(SEMAPHORE_PATH_STR).is_err() {
+    if std::fs::exists(SEMAPHORE_PATH_STR).is_err() {
         panic!(
             "Semaphore doesn't exist at SEMAPHORE_PATH_STR, make sure you run the backend first"
         );
