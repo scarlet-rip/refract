@@ -2,10 +2,11 @@ mod reader;
 mod sync;
 mod writer;
 
-pub use self::{reader::SharedMemoryReader, writer::SharedMemoryWriter};
+pub use self::{reader::SharedMemoryReader, sync::SemSyncError, writer::SharedMemoryWriter};
 
 use bytecheck::CheckBytes;
 use file_owner::PathExt;
+use miette::Diagnostic;
 use mmap_sync::synchronizer::SynchronizerError;
 use once_cell::sync::Lazy;
 use rkyv::{Archive, Deserialize, Serialize};
@@ -14,19 +15,6 @@ use std::{ffi::OsString, fs, os::unix::fs::PermissionsExt, path::Path};
 const SHARED_MEMORY_FILE_PATH: &str = "/dev/shm/refract-sm";
 static SHARED_MEMORY_FILE_PATH_OS_STR: Lazy<OsString> =
     Lazy::new(|| OsString::from(SHARED_MEMORY_FILE_PATH.to_string()));
-
-use miette::Diagnostic;
-
-#[derive(Debug, thiserror::Error, Diagnostic)]
-pub enum SemSyncError {
-    #[error("wait() failed on Semaphore")]
-    #[diagnostic(severity(Error))]
-    Wait,
-
-    #[error("post() failed on Semaphore")]
-    #[diagnostic(severity(Error))]
-    Post,
-}
 
 #[derive(Debug, thiserror::Error, Diagnostic)]
 pub enum SharedMemoryError {

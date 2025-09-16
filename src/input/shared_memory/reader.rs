@@ -51,7 +51,7 @@ impl SharedMemoryReader {
         self.semaphore
             .sem_ref()
             .wait()
-            .map_err(|_| SharedMemoryError::SemSync(SemSyncError::Wait))?;
+            .map_err(|_| SemSyncError::Wait)?;
 
         let data =
             unsafe { self.synchronizer.read::<RefractEvent>(false) }.map_err(SharedMemoryError::Read)?;

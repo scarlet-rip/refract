@@ -47,6 +47,8 @@ impl SharedMemoryWriter {
         self.semaphore
             .sem_ref()
             .post()
-            .map_err(|_| SharedMemoryError::SemSync(SemSyncError::Post))
+            .map_err(|_| SemSyncError::Post)?;
+
+        Ok(())
     }
 }

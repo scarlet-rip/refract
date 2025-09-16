@@ -1,8 +1,20 @@
 use super::ensure_file_permissions_for_front_backend_communication;
 use errno::errno;
+use miette::Diagnostic;
 use once_cell::sync::Lazy;
 use sem_safe::named::{OpenFlags, Semaphore};
 use std::ffi::CString;
+
+#[derive(Debug, thiserror::Error, Diagnostic)]
+pub enum SemSyncError {
+    #[error("wait() failed on Semaphore")]
+    #[diagnostic(severity(Error))]
+    Wait,
+
+    #[error("post() failed on Semaphore")]
+    #[diagnostic(severity(Error))]
+    Post,
+}
 
 const SEMAPHORE_PATH_STR: &str = "/dev/shm/sem.refract-sem";
 static SEMAPHORE_NAME_C_STRING: Lazy<CString> =
