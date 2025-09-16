@@ -53,8 +53,8 @@ impl SharedMemoryReader {
             .wait()
             .map_err(|_| SemSyncError::Wait)?;
 
-        let data =
-            unsafe { self.synchronizer.read::<RefractEvent>(false) }.map_err(SharedMemoryError::Read)?;
+        let data = unsafe { self.synchronizer.read::<RefractEvent>(false) }
+            .map_err(SharedMemoryError::Read)?;
 
         let archived_data = &*data;
 

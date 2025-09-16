@@ -1,6 +1,6 @@
 use super::sweep::Sweeper;
 use crate::input::{
-    relative_mouse_movement::MouseTracker,
+    mouse_tracker::MouseTracker,
     shared_memory::{ArchivedComboEvent, ArchivedRefractEvent, SharedMemoryReader},
 };
 use egui::Context;

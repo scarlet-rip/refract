@@ -5,36 +5,9 @@ use std::sync::{
     Arc,
 };
 use tokio::sync::mpsc;
+use tracing::{error, instrument};
 
-static WATCHER_STARTED: AtomicBool = AtomicBool::new(false);
-
-pub fn relative_mouse_movement_watcher(mut device: Device) {
-    if WATCHER_STARTED
-        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
-        .is_err()
-    {
-        panic!("relative_mouse_movement_watcher is already started");
-    }
-
-    tokio::task::spawn_blocking(move || {
-        let mut shared_memory_backend = SharedMemoryWriter::default();
-
-        while let Ok(events) = device.fetch_events() {
-            for event in events {
-                if let InputEventKind::RelAxis(RelativeAxisType::REL_X) = event.kind() {
-                    let movement = event.value();
-
-                    let result =
-                        shared_memory_backend.write(&RefractEvent::RelativeMouseMovement(movement));
-
-                    if let Err(error) = result {
-                        eprintln!("SharedMemory: {error}");
-                    }
-                }
-            }
-        }
-    });
-}
+static RUNNING: AtomicBool = AtomicBool::new(false);
 
 impl Default for MouseTracker {
     fn default() -> Self {
@@ -83,5 +56,31 @@ impl MouseTracker {
         self.tracked_distance.store(0, Ordering::Relaxed);
 
         total_distance
+    }
+
+    #[instrument(skip(device), fields(device_name = ?device.name()))]
+    pub fn start_watcher(mut device: Device) {
+        if RUNNING.swap(true, Ordering::SeqCst) {
+            panic!("MouseTracker::start_watcher called more than once!");
+        }
+
+        tokio::task::spawn_blocking(move || {
+            let mut shared_memory_backend = SharedMemoryWriter::default();
+
+            while let Ok(events) = device.fetch_events() {
+                for event in events {
+                    if let InputEventKind::RelAxis(RelativeAxisType::REL_X) = event.kind() {
+                        let movement = event.value();
+
+                        let result = shared_memory_backend
+                            .write(&RefractEvent::RelativeMouseMovement(movement));
+
+                        if let Err(err) = result {
+                            error!(error = ?err, "Failed to write mouse movement");
+                        }
+                    }
+                }
+            }
+        });
     }
 }

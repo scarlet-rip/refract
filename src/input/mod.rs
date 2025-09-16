@@ -1,11 +1,10 @@
-pub mod combo;
 pub mod devices;
-pub mod relative_mouse_movement;
+pub mod keyboard_tracker;
+pub mod mouse_tracker;
 pub mod shared_memory;
 
 use crate::input::{
-    combo::combo_watcher, devices::Devices,
-    relative_mouse_movement::relative_mouse_movement_watcher,
+    devices::Devices, keyboard_tracker::KeyboardTracker, mouse_tracker::MouseTracker,
 };
 
 pub async fn start() {
@@ -16,15 +15,11 @@ pub async fn start() {
         .await
         .expect("Failed to find the main mouse");
 
-    println!("mouse {:#?}", main_mouse.name().unwrap());
-
-    relative_mouse_movement_watcher(main_mouse);
+    MouseTracker::start_watcher(main_mouse);
 
     let main_keyboard = main_keyboard_future
         .await
         .expect("Failed to find the main keyboard");
 
-    println!("keybord {:#?}", main_keyboard.name().unwrap());
-
-    combo_watcher(main_keyboard);
+    KeyboardTracker::start_watcher(main_keyboard);
 }
