@@ -4,6 +4,5 @@ pub use gui::run_eframe;
 mod mouse;
 pub use mouse::start;
 
-mod sweep;
-
-pub mod input;
+mod input;
+pub use input::start_trackers;

@@ -5,7 +5,7 @@ use tracing_subscriber::FmtSubscriber;
 async fn main() -> eframe::Result {
     setup_tracing_subscriber();
 
-    refract_sc::input::start_trackers().await;
+    refract_sc::start_trackers().await;
 
     Ok(())
 }

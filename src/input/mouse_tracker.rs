@@ -4,8 +4,9 @@ use std::sync::{
     atomic::{AtomicBool, AtomicI32, Ordering},
     Arc,
 };
-use tokio::sync::mpsc;
 use tracing::{error, instrument};
+
+// TODO: Stop watcher when not tracking
 
 static RUNNING: AtomicBool = AtomicBool::new(false);
 
@@ -14,7 +15,6 @@ impl Default for MouseTracker {
         MouseTracker {
             tracked_distance: Arc::new(AtomicI32::new(0)),
             tracking_active: Arc::new(AtomicBool::new(false)),
-            stop_signal_sender: None,
         }
     }
 }
@@ -22,7 +22,6 @@ impl Default for MouseTracker {
 pub struct MouseTracker {
     tracked_distance: Arc<AtomicI32>,
     tracking_active: Arc<AtomicBool>,
-    stop_signal_sender: Option<mpsc::Sender<()>>,
 }
 
 impl MouseTracker {
@@ -45,10 +44,6 @@ impl MouseTracker {
 
         if !was_active {
             return 0;
-        }
-
-        if let Some(sender) = &self.stop_signal_sender {
-            sender.try_send(()).unwrap();
         }
 
         let total_distance = self.tracked_distance.load(Ordering::Relaxed).abs();

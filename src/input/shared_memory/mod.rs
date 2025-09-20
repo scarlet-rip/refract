@@ -45,7 +45,7 @@ pub enum RefractEvent {
     RelativeMouseMovement(i32),
 }
 
-pub fn ensure_file_permissions_for_front_backend_communication<I, P>(
+fn ensure_file_permissions_for_front_backend_communication<I, P>(
     panic_identifier: &str,
     file_paths: I,
 ) where

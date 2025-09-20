@@ -1,11 +1,14 @@
-pub mod devices;
-pub mod keyboard_tracker;
-pub mod mouse_tracker;
+mod devices;
+mod keyboard_tracker;
+mod mouse_tracker;
 pub mod shared_memory;
+mod sweep;
 
-use crate::input::{
-    devices::Devices, keyboard_tracker::KeyboardTracker, mouse_tracker::MouseTracker,
-};
+pub use keyboard_tracker::KeyboardTracker;
+pub use mouse_tracker::MouseTracker;
+pub use sweep::Sweeper;
+
+use devices::Devices;
 
 pub async fn start_trackers() {
     let devices = Devices::new();

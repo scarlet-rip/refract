@@ -2,7 +2,7 @@ use enigo::{Coordinate, Enigo, InputError, Mouse, Settings};
 use std::thread;
 use std::time::Duration;
 
-pub(crate) struct Sweeper {
+pub struct Sweeper {
     enigo_client: Enigo,
 }
 
@@ -15,12 +15,7 @@ impl Default for Sweeper {
 }
 
 impl Sweeper {
-    pub fn perform_horizontal_sweep(
-        &mut self,
-        pixels: i32,
-        chunk_size: u16,
-        delay_ms: u16,
-    ) -> Result<(), InputError> {
+    pub fn sweep(&mut self, pixels: i32, chunk_size: u16, delay_ms: u16) -> Result<(), InputError> {
         let chunk_size = chunk_size as i32;
 
         for _ in 0..(pixels / chunk_size) {

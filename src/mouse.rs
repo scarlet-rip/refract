@@ -1,6 +1,6 @@
-use super::sweep::Sweeper;
 use crate::input::{
-    mouse_tracker::MouseTracker,
+    Sweeper,
+    MouseTracker,
     shared_memory::{ArchivedComboEvent, ArchivedRefractEvent, SharedMemoryReader},
 };
 use egui::Context;
@@ -36,6 +36,7 @@ pub fn start(ui_context: Arc<Mutex<Context>>) -> (mpsc::Receiver<bool>, mpsc::Re
                     mouse_tracker.start();
                 }
             }
+
             ArchivedComboEvent::Perform360 => {
                 let mut status = GLOBAL_YAW_SWEEP_STATUS.try_write().unwrap();
 
@@ -47,7 +48,7 @@ pub fn start(ui_context: Arc<Mutex<Context>>) -> (mpsc::Receiver<bool>, mpsc::Re
                 let ui_context_clone_inner = Arc::clone(&ui_context);
 
                 Sweeper::default()
-                    .perform_horizontal_sweep(*GLOBAL_YAW_SWEEP_PIXELS.try_read().unwrap(), 10, 5)
+                    .sweep(*GLOBAL_YAW_SWEEP_PIXELS.try_read().unwrap(), 10, 5)
                     .unwrap();
 
                 let mut status = GLOBAL_YAW_SWEEP_STATUS.try_write().unwrap();
