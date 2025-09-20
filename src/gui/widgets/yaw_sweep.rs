@@ -3,6 +3,9 @@ use super::{
     GROUP_HEADER_SIZE, INFO_LABEL_SIZE, PARTITION_HEADER_COLOR, PARTITION_HEADER_SIZE,
     PARTITION_INNER_LABEL_SIZE,
 };
+use crate::mouse::{
+    GLOBAL_TOTAL_MOVEMENT, GLOBAL_TRACKING_STATUS, GLOBAL_YAW_SWEEP_PIXELS, GLOBAL_YAW_SWEEP_STATUS,
+};
 use egui::{
     load::TexturePoll, Align, Layout, Margin, Response, RichText, SizeHint, TextureFilter,
     TextureOptions, Ui, Widget,
@@ -10,16 +13,8 @@ use egui::{
 use scarlet_egui::{
     frame::{Frame, FrameDecoration, FrameDecorationNineSlice},
     input_field::NumericInput,
-    widget_state::{WidgetState, WidgetStateType},
 };
-
-#[derive(Clone)]
-struct YawSweepState {
-    measurement_status: bool,
-    measured_sweep_distance: i32,
-}
-
-impl WidgetState for YawSweepState {}
+use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 
 #[derive(Default)]
 pub(crate) struct YawSweep {}
@@ -51,13 +46,6 @@ impl Widget for YawSweep {
                 Margin::default(),
             )
             .show(ui, |ui| {
-                let state = YawSweepState::load_or_new(ui, None, WidgetStateType::Runtime, || {
-                    YawSweepState {
-                        measurement_status: false,
-                        measured_sweep_distance: i32::default(),
-                    }
-                });
-
                 ui.with_layout(Layout::top_down(Align::Center), |ui| {
                     ui.label(
                         RichText::new("Yaw Sweep")
@@ -76,7 +64,7 @@ impl Widget for YawSweep {
 
                                 ui.label(format!(
                                     "Measured distance: {} px",
-                                    state.measured_sweep_distance
+                                    GLOBAL_TOTAL_MOVEMENT.load(Ordering::Acquire)
                                 ));
 
                                 ui.columns(2, |cols| {
@@ -88,9 +76,11 @@ impl Widget for YawSweep {
                                     });
 
                                     cols[1].add(
-                                        StatusLabel::builder(state.measurement_status)
-                                            .size(INFO_LABEL_SIZE)
-                                            .build(),
+                                        StatusLabel::builder(
+                                            GLOBAL_TRACKING_STATUS.load(Ordering::Acquire),
+                                        )
+                                        .size(INFO_LABEL_SIZE)
+                                        .build(),
                                     );
                                 });
                             });
@@ -121,15 +111,27 @@ impl Widget for YawSweep {
                                     });
 
                                     ui.with_layout(Layout::top_down(Align::Center), |ui| {
-                                        // TODO:
-                                        // So currently it's a placeholder
-                                    
-                                        let mut pixels = i32::default();
+                                        /* atomic_i32_input(
+                                            ui,
+                                            "sweep‑execution‑distance",
+                                            &GLOBAL_YAW_SWEEP_PIXELS,
+                                        ); */
 
-                                        NumericInput::new("sweep‑execution‑distance", &mut pixels)
-                                            .show(ui);
+                                        let mut tmp =
+                                            GLOBAL_YAW_SWEEP_PIXELS.load(Ordering::Acquire);
 
-                                        let yaw_sweep_status = bool::default();
+                                        // 2) pass a &mut i32 to your existing widget
+                                        let resp =
+                                            NumericInput::new("sweep‑execution‑distance", &mut tmp)
+                                                .show(ui);
+
+                                        // 3) if user edited & it parsed, write back to atomic
+                                        if resp.response.changed() && resp.is_text_buffer_valid {
+                                            GLOBAL_YAW_SWEEP_PIXELS.store(tmp, Ordering::Release);
+                                        }
+
+                                        let yaw_sweep_status =
+                                            GLOBAL_YAW_SWEEP_STATUS.load(Ordering::Acquire);
 
                                         ui.add(
                                             StatusLabel::builder(yaw_sweep_status)
@@ -142,10 +144,23 @@ impl Widget for YawSweep {
                         });
                     });
                 });
-
-                state.clone().save_state(ui, None, WidgetStateType::Runtime);
             }),
             _ => ui.response(),
         }
     }
 }
+
+/* fn atomic_i32_input<'a>(ui: &mut Ui, id: &'a str, cell: &'a AtomicI32) -> NumericInputResponse {
+    // 1) snapshot value from atomic
+    let mut tmp = cell.load(Ordering::Acquire);
+
+    // 2) pass a &mut i32 to your existing widget
+    let resp = NumericInput::new(id, &mut tmp).show(ui);
+
+    // 3) if user edited & it parsed, write back to atomic
+    if resp.response.changed() && resp.is_text_buffer_valid {
+        cell.store(tmp, Ordering::Release);
+    }
+
+    resp
+} */
