@@ -1,8 +1,8 @@
-mod gui;
-pub use gui::run_eframe;
+mod tracing;
+pub use tracing::setup as setup_tracing;
 
-mod mouse;
-pub use mouse::start;
+mod gui;
+pub use gui::run_gui;
 
 mod input;
-pub use input::start_trackers;
+pub use input::{run_backend, run_frontend};
