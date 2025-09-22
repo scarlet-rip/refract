@@ -1,25 +1,35 @@
 mod reader;
+mod sync;
 mod writer;
 
-pub use self::{reader::SharedMemoryReader, writer::SharedMemoryWriter};
+pub use self::{reader::SharedMemoryReader, sync::SemSyncError, writer::SharedMemoryWriter};
 
 use bytecheck::CheckBytes;
+use file_owner::PathExt;
+use miette::Diagnostic;
+use mmap_sync::synchronizer::SynchronizerError;
+use once_cell::sync::Lazy;
 use rkyv::{Archive, Deserialize, Serialize};
-use sem_safe::named::{OpenFlags, Semaphore};
-use std::{
-    ffi::{CString, OsString},
-    fs::{set_permissions, Permissions},
-    os::unix::fs::PermissionsExt,
-    sync::atomic::AtomicBool,
-};
+use std::{ffi::OsString, fs, os::unix::fs::PermissionsExt, path::Path};
+use tracing::{error, instrument, warn};
 
 const SHARED_MEMORY_FILE_PATH: &str = "/dev/shm/refract-sm";
-static LISTENER_STARTED: AtomicBool = AtomicBool::new(false);
+static SHARED_MEMORY_FILE_PATH_OS_STR: Lazy<OsString> =
+    Lazy::new(|| OsString::from(SHARED_MEMORY_FILE_PATH.to_string()));
 
-lazy_static::lazy_static! {
-    pub static ref SHARED_MEMORY_FILE_PATH_OS_STR: OsString = OsString::from(SHARED_MEMORY_FILE_PATH.to_string());
-    pub static ref SEMAPHORE_NAME_C_STRING: CString =  CString::new("/refract-sem").expect("Failed to name semaphore");
-    pub static ref SEMAPHORE: Semaphore = initalize_read_sync_semaphore();
+#[derive(Debug, thiserror::Error, Diagnostic)]
+pub enum SharedMemoryError {
+    #[error(transparent)]
+    #[diagnostic(severity(Error))]
+    Write(SynchronizerError),
+
+    #[error(transparent)]
+    #[diagnostic(severity(Error))]
+    Read(SynchronizerError),
+
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    SemSync(#[from] SemSyncError),
 }
 
 #[derive(Archive, Serialize, Deserialize, Debug, PartialEq)]
@@ -36,33 +46,103 @@ pub enum RefractEvent {
     RelativeMouseMovement(i32),
 }
 
-fn initalize_read_sync_semaphore() -> Semaphore {
-    let semaphore_path = "/dev/shm/sem.refract-sem";
+fn ensure_file_permissions_for_front_backend_communication<I, P>(
+    panic_identifier: &str,
+    file_paths: I,
+) where
+    I: IntoIterator<Item = P>,
+    P: AsRef<std::path::Path>,
+{
+    const DESIRED_MODE: u32 = 0o660;
+    const DESIRED_GROUP: &str = "refract";
+    const DESIRED_OWNER: &str = "refract";
 
-    if std::fs::File::open(semaphore_path).is_ok() {
-        Semaphore::open(
-            &SEMAPHORE_NAME_C_STRING,
-            OpenFlags::Create {
-                exclusive: false,
-                value: 0,
-                mode: 0o660,
-            },
-        )
-        .expect("Failed to open semaphore")
+    for path in file_paths {
+        let path = path.as_ref();
+
+        if fs::exists(path).is_err() {
+            let _ = fs::File::create_new(path);
+        }
+
+        set_file_mode_if_different(path, DESIRED_MODE, panic_identifier);
+        set_file_owner_if_different(path, DESIRED_OWNER, panic_identifier);
+        set_file_group_if_different(path, DESIRED_GROUP, panic_identifier);
+    }
+}
+
+#[instrument]
+fn set_file_mode_if_different(path: &Path, desired_mode: u32, panic_identifier: &str) {
+    if let Ok(metadata) = fs::metadata(path) {
+        let current_permissions = metadata.permissions().mode() & 0o777; // Plain permissions only
+
+        if current_permissions != desired_mode {
+            let mut permissions = metadata.permissions();
+
+            permissions.set_mode(desired_mode);
+
+            let result = fs::set_permissions(path, permissions);
+
+            if let Err(error) = result {
+                error!("{} -> Failed to change file permissions to [{}] from [{current_permissions}] at [{}], ERROR: {:#?}", panic_identifier, desired_mode, path.display(), error);
+
+                panic!()
+            }
+        }
     } else {
-        let semaphore = Semaphore::open(
-            &SEMAPHORE_NAME_C_STRING,
-            OpenFlags::Create {
-                exclusive: false,
-                value: 0,
-                mode: 0o660,
-            },
-        )
-        .expect("Failed to open semaphore");
+        if path
+            .file_name()
+            .is_some_and(|file_name| file_name.to_string_lossy().contains("sm_data_1"))
+        {
+            return;
+        }
 
-        set_permissions(semaphore_path, Permissions::from_mode(0o660))
-            .expect("Failed to set semaphore file permissions");
+        error!(
+            "{panic_identifier} -> Failed to get the metadata of [{}].",
+            path.display()
+        );
 
-        semaphore
+        panic!();
+    }
+}
+
+#[instrument]
+fn set_file_owner_if_different(path: &Path, desired_owner: &str, panic_identifier: &str) {
+    if path
+        .owner()
+        .ok()
+        .and_then(|o| o.name().ok().and_then(|name| name))
+        .map_or(true, |name| name != desired_owner)
+    {
+        path.set_owner(desired_owner).unwrap_or_else(|_| {
+            error!(
+                "[{}] -> Failed to change file owner, make sure [{}] is owned by {}",
+                panic_identifier,
+                path.display(),
+                desired_owner
+            );
+
+            panic!();
+        });
+    }
+}
+
+#[instrument]
+fn set_file_group_if_different(path: &Path, desired_group: &str, panic_identifier: &str) {
+    if path
+        .group()
+        .ok()
+        .and_then(|o| o.name().ok().and_then(|name| name))
+        .map_or(true, |name| name != desired_group)
+    {
+        path.set_group(desired_group).unwrap_or_else(|_| {
+            error!(
+                "[{}] -> Failed to change file group, make sure [{}] is owned by {} group",
+                panic_identifier,
+                path.display(),
+                desired_group
+            );
+
+            panic!();
+        });
     }
 }

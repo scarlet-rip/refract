@@ -1,14 +1,15 @@
 use bon::Builder;
 use egui::{Align, Color32, Label, Layout, Response, RichText, Ui, Widget};
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 
 const PROJECT_TITLE_SIZE: f32 = 14.5;
 const INFO_TITLE_SIZE: f32 = 9.0;
 
-lazy_static! {
-    static ref PROJECT_TITLE_COLOR: Color32 = Color32::from_hex("#6b0707").expect("Invalid HEX");
-    static ref INFO_TITLE_COLOR: Color32 = Color32::from_hex("#3a3737").expect("Invalid HEX");
-}
+static PROJECT_TITLE_COLOR: Lazy<Color32> =
+    Lazy::new(|| Color32::from_hex("#6b0707").expect("Invalid HEX"));
+
+static INFO_TITLE_COLOR: Lazy<Color32> =
+    Lazy::new(|| Color32::from_hex("#3a3737").expect("Invalid HEX"));
 
 const SEPARATOR_OFFSET_BOTTOM: f32 = -8.0;
 const PROJECT_TITLE_X_OFFSET: f32 = -4.0;

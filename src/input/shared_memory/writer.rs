@@ -1,54 +1,54 @@
-use super::{RefractEvent, SEMAPHORE, SHARED_MEMORY_FILE_PATH, SHARED_MEMORY_FILE_PATH_OS_STR};
-use file_owner::PathExt;
+use super::{
+    ensure_file_permissions_for_front_backend_communication, sync::create_or_open_shm_sync_sem,
+    RefractEvent, SemSyncError, SharedMemoryError, SHARED_MEMORY_FILE_PATH,
+    SHARED_MEMORY_FILE_PATH_OS_STR,
+};
 use mmap_sync::synchronizer::Synchronizer;
-use sem_safe::SemaphoreRef;
-use std::fs;
-use std::os::unix::fs::PermissionsExt;
-use std::sync::Once;
-use tokio::time::Duration;
+use sem_safe::named::Semaphore;
+use std::{sync::Once, time::Duration};
+use tracing::{debug, instrument};
 
-pub struct SharedMemoryWriter<'a> {
+pub struct SharedMemoryWriter {
     synchronizer: Synchronizer,
-    semaphore: SemaphoreRef<'a>,
+    semaphore: Semaphore,
 }
 
-impl Default for SharedMemoryWriter<'_> {
+impl Default for SharedMemoryWriter {
     fn default() -> Self {
         Self {
             synchronizer: Synchronizer::new(&SHARED_MEMORY_FILE_PATH_OS_STR),
-            semaphore: SEMAPHORE.sem_ref(),
+            semaphore: create_or_open_shm_sync_sem(),
         }
     }
 }
 
-impl SharedMemoryWriter<'_> {
-    pub fn write(&mut self, event: &RefractEvent) {
+impl SharedMemoryWriter {
+    #[instrument(skip(self, event), fields(shm_path = %SHARED_MEMORY_FILE_PATH_OS_STR.to_string_lossy()))]
+    pub fn write(&mut self, event: &RefractEvent) -> Result<(), SharedMemoryError> {
         self.synchronizer
             .write(event, Duration::from_secs(1))
-            .expect("failed to write data");
+            .map_err(SharedMemoryError::Write)?;
 
         static INIT: Once = Once::new();
 
         INIT.call_once(|| {
-            let desired_mode = 0o660;
-            let perms = fs::Permissions::from_mode(desired_mode);
+            ensure_file_permissions_for_front_backend_communication(
+                "SharedMemory|> File Permissions Check",
+                vec![
+                    &format!("{SHARED_MEMORY_FILE_PATH}_data_0"),
+                    &format!("{SHARED_MEMORY_FILE_PATH}_data_1"),
+                    &format!("{SHARED_MEMORY_FILE_PATH}_state"),
+                ],
+            );
 
-            for suffix in ["_data_0", "_data_1", "_state"] {
-                let path = format!("{SHARED_MEMORY_FILE_PATH}{suffix}");
-
-                if let Ok(metadata) = fs::metadata(&path) {
-                    let current_perms = metadata.permissions().mode() & 0o777;
-
-                    if current_perms != desired_mode {
-                        fs::set_permissions(&path, perms.clone())
-                            .unwrap_or_else(|_| panic!("Failed to set permissions for {path}"));
-
-                        path.set_group("refract").expect("failed to set group");
-                    }
-                }
-            }
+            debug!("Permissions ensured for shared-memory files");
         });
 
-        self.semaphore.post().expect("Failed to post semaphore");
+        self.semaphore
+            .sem_ref()
+            .post()
+            .map_err(|_| SemSyncError::Post)?;
+
+        Ok(())
     }
 }

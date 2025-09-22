@@ -1,24 +1,15 @@
-use super::ASSETS_DIRECTORY;
+use super::{
+    ASSETS_DIRECTORY, FRAME_TINT, GROUP_HEADER_COLOR, GROUP_HEADER_SIZE, HIGHLIGHT_COLOR,
+    PARTITION_HEADER_COLOR, PARTITION_HEADER_SIZE, PARTITION_INNER_LABEL_SIZE,
+};
 use egui::{
-    load::TexturePoll, Align, Color32, Layout, Margin, RichText, SizeHint, TextEdit, TextureFilter,
+    load::TexturePoll, Align, Layout, Margin, RichText, SizeHint, TextEdit, TextureFilter,
     TextureOptions, Ui,
 };
-use lazy_static::lazy_static;
 use scarlet_egui::{
     frame::{Frame, FrameDecoration, FrameDecorationNineSlice},
     input_field::NumericInput,
 };
-
-const GROUP_HEADER_SIZE: f32 = 14.0;
-const PARTITION_HEADER_SIZE: f32 = 14.0;
-const PARTITION_INNER_LABEL_SIZE: f32 = 12.5;
-
-lazy_static! {
-    static ref FRAME_TINT: Color32 = Color32::from_hex("#3a3737").expect("Invalid HEX");
-    static ref GROUP_HEADER_COLOR: Color32 = Color32::from_hex("#6b0707").expect("Invalid HEX");
-    static ref PARTITION_HEADER_COLOR: Color32 = Color32::from_hex("#6b0707").expect("Invalid HEX");
-    static ref HIGHLIGHT_COLOR: Color32 = Color32::from_hex("#6b0707").expect("Invalid HEX");
-}
 
 #[derive(Default)]
 pub(crate) struct SensitivityConversion {

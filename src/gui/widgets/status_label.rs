@@ -1,13 +1,6 @@
+use super::{STATUS_HIGHLIGHT_COLOR_ACTIVE, STATUS_HIGHLIGHT_COLOR_INACTIVE};
 use bon::Builder;
-use egui::{text::LayoutJob, Color32, Response, TextFormat, TextStyle, Ui, Widget};
-use lazy_static::lazy_static;
-
-lazy_static! {
-    static ref STATUS_HIGHLIGHT_COLOR_ACTIVE: Color32 =
-        Color32::from_hex("#076A19").expect("Invalid HEX");
-    static ref STATUS_HIGHLIGHT_COLOR_INACTIVE: Color32 =
-        Color32::from_hex("#821E1E").expect("Invalid HEX");
-}
+use egui::{text::LayoutJob, Response, TextFormat, TextStyle, Ui, Widget};
 
 #[derive(Builder)]
 pub(crate) struct StatusLabel {

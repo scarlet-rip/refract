@@ -1,21 +1,15 @@
-use refract_sc::run_eframe;
-use tracing::{subscriber, Level};
-use tracing_subscriber::FmtSubscriber;
+use refract_sc::{run_frontend, run_gui, setup_tracing};
+use tokio::task::spawn_blocking;
 
 #[tokio::main]
 async fn main() -> eframe::Result {
-    setup_tracing_subscriber();
+    setup_tracing();
 
-    run_eframe()?;
+    spawn_blocking(|| {
+        run_frontend();
+    });
+
+    run_gui()?;
 
     Ok(())
-}
-
-fn setup_tracing_subscriber() {
-    let subscriber = FmtSubscriber::builder()
-        .with_max_level(Level::DEBUG)
-        .finish();
-
-    subscriber::set_global_default(subscriber)
-        .expect("failed to set the default subscriber failed");
 }

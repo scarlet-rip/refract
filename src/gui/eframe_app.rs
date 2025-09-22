@@ -20,7 +20,7 @@ impl eframe::App for EframeApp {
     }
 }
 
-pub fn run_eframe() -> eframe::Result {
+pub fn run() -> eframe::Result {
     let options = NativeOptions {
         centered: true,
         viewport: ViewportBuilder::default()

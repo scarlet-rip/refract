@@ -1,54 +1,30 @@
-use super::ASSETS_DIRECTORY;
-use super::{KeybindActionLabel, StatusLabel};
-use crate::mouse::{GLOBAL_YAW_SWEEP_PIXELS, GLOBAL_YAW_SWEEP_STATUS};
-use crate::start;
+use super::{
+    KeybindActionLabel, StatusLabel, ASSETS_DIRECTORY, FRAME_TINT, GROUP_HEADER_COLOR,
+    GROUP_HEADER_SIZE, INFO_LABEL_SIZE, PARTITION_HEADER_COLOR, PARTITION_HEADER_SIZE,
+    PARTITION_INNER_LABEL_SIZE,
+};
+use crate::input::{
+    GLOBAL_TOTAL_MOVEMENT, GLOBAL_TRACKING_STATUS, GLOBAL_YAW_SWEEP_PIXELS, GLOBAL_YAW_SWEEP_STATUS,
+};
 use egui::{
-    load::TexturePoll, Align, Color32, Layout, Margin, Response, RichText, SizeHint, TextureFilter,
+    load::TexturePoll, Align, Layout, Margin, Response, RichText, SizeHint, TextureFilter,
     TextureOptions, Ui, Widget,
 };
-use lazy_static::lazy_static;
 use scarlet_egui::{
     frame::{Frame, FrameDecoration, FrameDecorationNineSlice},
     input_field::NumericInput,
-    widget_state::{WidgetState, WidgetStateType},
 };
-use std::sync::Arc;
-use tokio::sync::{mpsc::Receiver, Mutex};
-
-const GROUP_HEADER_SIZE: f32 = 14.0;
-const PARTITION_HEADER_SIZE: f32 = 14.0;
-const PARTITION_INNER_LABEL_SIZE: f32 = 12.5;
-
-const INFO_LABEL_SIZE: f32 = 9.0;
-
-lazy_static! {
-    static ref FRAME_TINT: Color32 = Color32::from_hex("#3a3737").expect("Invalid HEX");
-    static ref GROUP_HEADER_COLOR: Color32 = Color32::from_hex("#6b0707").expect("Invalid HEX");
-    static ref PARTITION_HEADER_COLOR: Color32 = Color32::from_hex("#6b0707").expect("Invalid HEX");
-    static ref KEYBIND_HIGHLIGHT_COLOR: Color32 =
-        Color32::from_hex("#821E1E").expect("Invalid HEX");
-    static ref STATUS_HIGHLIGHT_COLOR_ACTIVE: Color32 =
-        Color32::from_hex("#076A19").expect("Invalid HEX");
-    static ref STATUS_HIGHLIGHT_COLOR_INACTIVE: Color32 =
-        Color32::from_hex("#821E1E").expect("Invalid HEX");
-}
-
-#[derive(Clone)]
-struct YawSweepState {
-    measurement_status_receiver: Arc<Mutex<Receiver<bool>>>,
-    sweep_distance_measurement_receiver: Arc<Mutex<Receiver<i32>>>,
-
-    measurement_status: bool,
-    measured_sweep_distance: i32,
-}
-
-impl WidgetState for YawSweepState {}
+use std::sync::atomic::Ordering;
 
 #[derive(Default)]
 pub(crate) struct YawSweep {}
 
 impl Widget for YawSweep {
     fn ui(self, ui: &mut Ui) -> Response {
+        let total_movement = GLOBAL_TOTAL_MOVEMENT.load(Ordering::Acquire);
+        let tracking_status = GLOBAL_TRACKING_STATUS.load(Ordering::Acquire);
+        let yaw_sweep_status = GLOBAL_YAW_SWEEP_STATUS.load(Ordering::Acquire);
+
         let texture = ui
             .ctx()
             .try_load_texture(
@@ -74,42 +50,6 @@ impl Widget for YawSweep {
                 Margin::default(),
             )
             .show(ui, |ui| {
-                let mut state =
-                    YawSweepState::load_or_new(ui, None, WidgetStateType::Runtime, || {
-                        let (measurement_status_receiver, sweep_distance_measurement_receiver) =
-                            start(Arc::new(Mutex::new(ui.ctx().to_owned())));
-
-                        YawSweepState {
-                            measurement_status_receiver: Arc::new(Mutex::new(
-                                measurement_status_receiver,
-                            )),
-                            sweep_distance_measurement_receiver: Arc::new(Mutex::new(
-                                sweep_distance_measurement_receiver,
-                            )),
-
-                            measurement_status: false,
-                            measured_sweep_distance: i32::default(),
-                        }
-                    });
-
-                let (mut measurement_status_receiver, mut sweep_distance_measurement_receiver) = (
-                    state.measurement_status_receiver.try_lock().unwrap(),
-                    state
-                        .sweep_distance_measurement_receiver
-                        .try_lock()
-                        .unwrap(),
-                );
-
-                if let Ok(measurement_status) = measurement_status_receiver.try_recv() {
-                    state.measurement_status = measurement_status;
-                }
-
-                if let Ok(sweep_distance_measurement) =
-                    sweep_distance_measurement_receiver.try_recv()
-                {
-                    state.measured_sweep_distance = sweep_distance_measurement;
-                }
-
                 ui.with_layout(Layout::top_down(Align::Center), |ui| {
                     ui.label(
                         RichText::new("Yaw Sweep")
@@ -126,10 +66,7 @@ impl Widget for YawSweep {
                                         .color(*PARTITION_HEADER_COLOR),
                                 );
 
-                                ui.label(format!(
-                                    "Measured distance: {} px",
-                                    state.measured_sweep_distance
-                                ));
+                                ui.label(format!("Measured distance: {} px", total_movement,));
 
                                 ui.columns(2, |cols| {
                                     cols[0].with_layout(Layout::right_to_left(Align::Min), |ui| {
@@ -140,7 +77,7 @@ impl Widget for YawSweep {
                                     });
 
                                     cols[1].add(
-                                        StatusLabel::builder(state.measurement_status)
+                                        StatusLabel::builder(tracking_status)
                                             .size(INFO_LABEL_SIZE)
                                             .build(),
                                     );
@@ -173,33 +110,26 @@ impl Widget for YawSweep {
                                     });
 
                                     ui.with_layout(Layout::top_down(Align::Center), |ui| {
-                                        // TODO: Fix this dirty workaround
-                                        // write blows up for sum reason
-                                        if let Ok(mut pixels) = GLOBAL_YAW_SWEEP_PIXELS.try_write()
-                                        {
-                                            NumericInput::new(
-                                                "sweep‑execution‑distance",
-                                                &mut *pixels,
-                                            )
-                                            .show(ui);
-                                        } else {
-                                            let current =
-                                                *GLOBAL_YAW_SWEEP_PIXELS.try_read().unwrap();
-                                            let mut temp = current;
+                                        // TODO (for scarlet-egui): Allow atomics
+                                        let mut yaw_sweep_pixels =
+                                            GLOBAL_YAW_SWEEP_PIXELS.load(Ordering::Acquire);
 
-                                            NumericInput::new(
-                                                "sweep‑execution‑distance (locked)",
-                                                &mut temp,
-                                            )
-                                            .show(ui);
+                                        let resp = NumericInput::new(
+                                            "sweep‑execution‑distance",
+                                            &mut yaw_sweep_pixels,
+                                        )
+                                        .show(ui);
+
+                                        // if user edited & its valid, write back to atomic
+                                        if resp.response.changed() && resp.is_text_buffer_valid {
+                                            GLOBAL_YAW_SWEEP_PIXELS
+                                                .store(yaw_sweep_pixels, Ordering::Release);
                                         }
 
                                         ui.add(
-                                            StatusLabel::builder(
-                                                *GLOBAL_YAW_SWEEP_STATUS.try_read().unwrap(),
-                                            )
-                                            .size(INFO_LABEL_SIZE)
-                                            .build(),
+                                            StatusLabel::builder(yaw_sweep_status)
+                                                .size(INFO_LABEL_SIZE)
+                                                .build(),
                                         );
                                     });
                                 });
@@ -207,8 +137,6 @@ impl Widget for YawSweep {
                         });
                     });
                 });
-
-                state.clone().save_state(ui, None, WidgetStateType::Runtime);
             }),
             _ => ui.response(),
         }
