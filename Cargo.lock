@@ -2690,7 +2690,6 @@ dependencies = [
  "egui",
  "egui_extras",
  "enigo",
- "errno",
  "evdev",
  "file-owner",
  "image",

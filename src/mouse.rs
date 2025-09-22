@@ -41,7 +41,7 @@ pub fn start() {
                     .sweep(GLOBAL_YAW_SWEEP_PIXELS.load(Ordering::Acquire), 10, 5)
                     .unwrap();
 
-                GLOBAL_YAW_SWEEP_STATUS.store(true, Ordering::Release);
+                GLOBAL_YAW_SWEEP_STATUS.store(false, Ordering::Release);
             }
         },
         ArchivedRefractEvent::RelativeMouseMovement(movement) => {
